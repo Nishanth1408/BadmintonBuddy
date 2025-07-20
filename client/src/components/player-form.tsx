@@ -27,16 +27,19 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
 
   const createPlayerMutation = useMutation({
     mutationFn: async (data: InsertPlayer) => {
+      console.log("Sending POST request with data:", data);
       return apiRequest("POST", "/api/players", data);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log("Player created successfully:", result);
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({ title: "Player created successfully" });
       onSuccess();
       form.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Failed to create player:", error);
       toast({ title: "Failed to create player", variant: "destructive" });
     },
   });
@@ -57,6 +60,7 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
   });
 
   const onSubmit = (data: InsertPlayer) => {
+    console.log("Form submitted with data:", data);
     if (player) {
       updatePlayerMutation.mutate(data);
     } else {
@@ -89,7 +93,10 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Skill Level (1-10)</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+              <Select 
+                onValueChange={(value) => field.onChange(parseInt(value))} 
+                value={field.value?.toString()}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select skill level" />

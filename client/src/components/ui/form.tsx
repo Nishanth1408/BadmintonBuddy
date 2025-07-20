@@ -4,14 +4,18 @@ import {
   ControllerProps,
   FieldPath,
   FieldValues,
-  useFormContext,
+  FormProvider,
+  UseFormReturn,
 } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Slot } from "@radix-ui/react-slot";
 
-const Form = ({ children, ...props }: React.FormHTMLAttributes<HTMLFormElement>) => {
-  return <form {...props}>{children}</form>;
+const Form = <TFieldValues extends FieldValues = FieldValues>({ 
+  children, 
+  ...methods 
+}: UseFormReturn<TFieldValues> & { children: React.ReactNode }) => {
+  return <FormProvider {...methods}>{children}</FormProvider>;
 };
 
 const FormItem = React.forwardRef<
