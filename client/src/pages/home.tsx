@@ -32,12 +32,24 @@ export default function Home() {
 
   const { data: pairs = [], isLoading: pairsLoading } = useQuery<DoublesTeam[]>({
     queryKey: ["/api/pairs", skillFilter],
-    enabled: (activeTab === "pairs" || activeTab === "matches") && players.length >= 4,
+    queryFn: async () => {
+      const url = `/api/pairs?skillLevel=${encodeURIComponent(skillFilter)}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return await res.json();
+    },
+    enabled: activeTab === "pairs" || activeTab === "matches",
   });
 
   const { data: allPairs = [] } = useQuery<DoublesTeam[]>({
     queryKey: ["/api/pairs", "All Skill Levels"],
-    enabled: activeTab === "matches" && players.length >= 4,
+    queryFn: async () => {
+      const url = `/api/pairs?skillLevel=${encodeURIComponent("All Skill Levels")}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return await res.json();
+    },
+    enabled: activeTab === "matches",
   });
 
   const { data: statsData, isLoading: statsLoading } = useQuery<{
