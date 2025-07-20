@@ -5,7 +5,7 @@ import { z } from "zod";
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  skillLevel: text("skill_level").notNull(), // "Beginner", "Intermediate", "Advanced"
+  skillLevel: integer("skill_level").notNull(), // 1-10 scale
 });
 
 export const matches = pgTable("matches", {
@@ -24,7 +24,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
   skillLevel: true,
 }).extend({
-  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
+  skillLevel: z.number().min(1).max(10),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).pick({
@@ -49,7 +49,7 @@ export type InsertMatch = z.infer<typeof insertMatchSchema>;
 export interface PlayerStats {
   playerId: number;
   name: string;
-  skillLevel: string;
+  skillLevel: number;
   totalMatches: number;
   wins: number;
   losses: number;

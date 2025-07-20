@@ -1,12 +1,25 @@
-# REST Express Application
+# Kanteeravas Badminton Club Management System
 
 ## Overview
 
-This is a full-stack sports management application built with React (frontend) and Express.js (backend). The application manages players and matches for a doubles sports league, featuring player management, match recording, statistics tracking, and pair suggestions. The architecture follows a monorepo structure with shared TypeScript schemas and modern web development practices.
+This is a full-stack badminton club management application built with React (frontend) and Express.js (backend). The application manages players and matches for Kanteeravas Badminton Club, featuring player management with 1-10 skill levels, match recording, statistics tracking, and intelligent doubles pair generation. The architecture follows a monorepo structure with shared TypeScript schemas and modern web development practices.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (January 2025)
+
+- **Application Rebranding**: Changed name from "Badminton Club Manager" to "Kanteeravas Badminton Club"
+- **Skill Level System Overhaul**: 
+  - Migrated from text-based levels (Beginner/Intermediate/Advanced) to numeric scale (1-10)
+  - Updated database schema to use integer skill levels
+  - Modified UI components to display "Level X" format with category indicators
+  - Updated pair generation logic to use numeric skill differences
+- **Enhanced User Experience**: 
+  - Skill level dropdown now shows "1 - Beginner", "5 - Intermediate", "9 - Advanced" format
+  - Balance analysis uses ≤2 skill point difference threshold
+  - Filter options updated to use skill ranges: "Beginner (1-3)", "Intermediate (4-7)", "Advanced (8-10)"
 
 ## System Architecture
 
@@ -37,9 +50,14 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Database Schema
-- **Players Table**: Stores player information including name and skill level (Beginner/Intermediate/Advanced)
+- **Players Table**: Stores player information including name and skill level (1-10 numeric scale)
 - **Matches Table**: Records match data with team compositions, scores, and winners
 - **Relationships**: Foreign key relationships between matches and players
+
+### Skill Level System
+- **Scale**: 1-10 numeric rating system
+- **Categories**: 1-3 (Beginner), 4-7 (Intermediate), 8-10 (Advanced)
+- **Balance Logic**: Pairs with skill difference ≤2 are considered "Balanced"
 
 ### API Endpoints
 - `GET/POST /api/players` - Player management
@@ -49,10 +67,11 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/pairs` - Suggested player pairings
 
 ### UI Components
-- **Player Management**: Create, edit, delete players with skill level categorization
+- **Player Management**: Create, edit, delete players with 1-10 skill level selection
+- **Doubles Pair Generator**: Automatic generation of all possible team combinations with balance analysis
 - **Match Recording**: Form-based match recording with team selection and score input
-- **Statistics Dashboard**: Player performance metrics and league statistics
-- **Responsive Design**: Mobile-first approach with adaptive layouts
+- **Statistics Dashboard**: Player performance metrics and club statistics
+- **Responsive Design**: Mobile-first approach with bottom navigation for mobile devices
 
 ### Shared Types
 - TypeScript interfaces and Zod schemas shared between client and server

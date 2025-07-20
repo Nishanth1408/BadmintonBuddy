@@ -75,13 +75,16 @@ export default function Home() {
     return name.split(" ").map(n => n[0]).join("").toUpperCase();
   };
 
-  const getSkillLevelColor = (level: string) => {
-    switch (level) {
-      case "Advanced": return "bg-green-500";
-      case "Intermediate": return "bg-yellow-500";
-      case "Beginner": return "bg-blue-500";
-      default: return "bg-gray-500";
-    }
+  const getSkillLevelColor = (level: number) => {
+    if (level >= 8) return "bg-green-500"; // Advanced
+    if (level >= 4) return "bg-yellow-500"; // Intermediate  
+    return "bg-blue-500"; // Beginner
+  };
+
+  const getSkillLevelLabel = (level: number) => {
+    if (level >= 8) return `${level} (Advanced)`;
+    if (level >= 4) return `${level} (Intermediate)`;
+    return `${level} (Beginner)`;
   };
 
   const getPlayerAvatarColor = (index: number) => {
@@ -109,7 +112,7 @@ export default function Home() {
               <div className="bg-blue-600 text-white rounded-lg p-2">
                 <Trophy className="h-6 w-6" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Badminton Club Manager</h1>
+              <h1 className="text-xl font-bold text-gray-900">Kanteeravas Badminton Club</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -238,7 +241,7 @@ export default function Home() {
                               <div className="flex items-center space-x-2">
                                 <span className="text-sm text-gray-600">Skill Level:</span>
                                 <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
-                                  {player.skillLevel}
+                                  {getSkillLevelLabel(player.skillLevel)}
                                 </Badge>
                               </div>
                             </div>
@@ -300,9 +303,9 @@ export default function Home() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="All Skill Levels">All Skill Levels</SelectItem>
-                    <SelectItem value="Advanced Only">Advanced Only</SelectItem>
-                    <SelectItem value="Intermediate Only">Intermediate Only</SelectItem>
-                    <SelectItem value="Beginner Only">Beginner Only</SelectItem>
+                    <SelectItem value="Advanced (8-10)">Advanced (8-10)</SelectItem>
+                    <SelectItem value="Intermediate (4-7)">Intermediate (4-7)</SelectItem>
+                    <SelectItem value="Beginner (1-3)">Beginner (1-3)</SelectItem>
                     <SelectItem value="Mixed Levels">Mixed Levels</SelectItem>
                   </SelectContent>
                 </Select>
@@ -357,7 +360,7 @@ export default function Home() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">{pair.player1.name}</div>
-                            <div className="text-sm text-gray-500">{pair.player1.skillLevel}</div>
+                            <div className="text-sm text-gray-500">Level {pair.player1.skillLevel}</div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -366,7 +369,7 @@ export default function Home() {
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">{pair.player2.name}</div>
-                            <div className="text-sm text-gray-500">{pair.player2.skillLevel}</div>
+                            <div className="text-sm text-gray-500">Level {pair.player2.skillLevel}</div>
                           </div>
                         </div>
                       </div>

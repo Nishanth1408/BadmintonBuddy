@@ -68,9 +68,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (skillFilter && skillFilter !== "All Skill Levels") {
         if (skillFilter === "Mixed Levels") {
           // Don't filter, use all players
-        } else {
-          const targetSkill = skillFilter.replace(" Only", "");
-          filteredPlayers = players.filter(p => p.skillLevel === targetSkill);
+        } else if (skillFilter === "Beginner (1-3)") {
+          filteredPlayers = players.filter(p => p.skillLevel >= 1 && p.skillLevel <= 3);
+        } else if (skillFilter === "Intermediate (4-7)") {
+          filteredPlayers = players.filter(p => p.skillLevel >= 4 && p.skillLevel <= 7);
+        } else if (skillFilter === "Advanced (8-10)") {
+          filteredPlayers = players.filter(p => p.skillLevel >= 8 && p.skillLevel <= 10);
         }
       }
 
@@ -81,13 +84,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const player1 = filteredPlayers[i];
           const player2 = filteredPlayers[j];
           
-          // Determine balance level
-          const skillLevels = ["Beginner", "Intermediate", "Advanced"];
-          const p1Level = skillLevels.indexOf(player1.skillLevel);
-          const p2Level = skillLevels.indexOf(player2.skillLevel);
-          const skillDiff = Math.abs(p1Level - p2Level);
+          // Determine balance level based on skill difference (1-10 scale)
+          const skillDiff = Math.abs(player1.skillLevel - player2.skillLevel);
           
-          const balanceLevel = skillDiff <= 1 ? "Balanced" : "Unbalanced";
+          const balanceLevel = skillDiff <= 2 ? "Balanced" : "Unbalanced";
           
           pairs.push({
             player1,

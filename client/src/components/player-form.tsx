@@ -21,7 +21,7 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
     resolver: zodResolver(insertPlayerSchema),
     defaultValues: {
       name: player?.name || "",
-      skillLevel: (player?.skillLevel as "Beginner" | "Intermediate" | "Advanced") || "Beginner",
+      skillLevel: player?.skillLevel || 1,
     },
   });
 
@@ -88,17 +88,19 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
           name="skillLevel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Skill Level</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Skill Level (1-10)</FormLabel>
+              <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select skill level" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Beginner">Beginner</SelectItem>
-                  <SelectItem value="Intermediate">Intermediate</SelectItem>
-                  <SelectItem value="Advanced">Advanced</SelectItem>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(level => (
+                    <SelectItem key={level} value={level.toString()}>
+                      {level} - {level <= 3 ? 'Beginner' : level <= 7 ? 'Intermediate' : 'Advanced'}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />

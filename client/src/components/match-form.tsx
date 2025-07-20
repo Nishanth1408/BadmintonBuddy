@@ -126,7 +126,7 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
                     <SelectContent>
                       {getAvailablePlayers(Array.from(selectedPlayerIds).filter(id => id !== field.value)).map(player => (
                         <SelectItem key={player.id} value={player.id.toString()}>
-                          {player.name} ({player.skillLevel})
+                          {player.name} (Level {player.skillLevel})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -154,7 +154,7 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
                     <SelectContent>
                       {getAvailablePlayers(Array.from(selectedPlayerIds).filter(id => id !== field.value)).map(player => (
                         <SelectItem key={player.id} value={player.id.toString()}>
-                          {player.name} ({player.skillLevel})
+                          {player.name} (Level {player.skillLevel})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -210,7 +210,7 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
                     <SelectContent>
                       {getAvailablePlayers(Array.from(selectedPlayerIds).filter(id => id !== field.value)).map(player => (
                         <SelectItem key={player.id} value={player.id.toString()}>
-                          {player.name} ({player.skillLevel})
+                          {player.name} (Level {player.skillLevel})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -238,7 +238,7 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
                     <SelectContent>
                       {getAvailablePlayers(Array.from(selectedPlayerIds).filter(id => id !== field.value)).map(player => (
                         <SelectItem key={player.id} value={player.id.toString()}>
-                          {player.name} ({player.skillLevel})
+                          {player.name} (Level {player.skillLevel})
                         </SelectItem>
                       ))}
                     </SelectContent>
