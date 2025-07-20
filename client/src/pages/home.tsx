@@ -32,7 +32,12 @@ export default function Home() {
 
   const { data: pairs = [], isLoading: pairsLoading } = useQuery<DoublesTeam[]>({
     queryKey: ["/api/pairs", skillFilter],
-    enabled: activeTab === "pairs",
+    enabled: (activeTab === "pairs" || activeTab === "matches") && players.length >= 4,
+  });
+
+  const { data: allPairs = [] } = useQuery<DoublesTeam[]>({
+    queryKey: ["/api/pairs", "All Skill Levels"],
+    enabled: activeTab === "matches" && players.length >= 4,
   });
 
   const { data: statsData, isLoading: statsLoading } = useQuery<{
@@ -294,7 +299,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Doubles Pairs</h2>
-                <p className="text-gray-600 mt-1">Generate balanced team combinations</p>
+                <p className="text-gray-600 mt-1">All possible team combinations</p>
               </div>
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                 <Select value={skillFilter} onValueChange={setSkillFilter}>
@@ -309,13 +314,7 @@ export default function Home() {
                     <SelectItem value="Mixed Levels">Mixed Levels</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/pairs"] })}
-                  disabled={pairsLoading}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Generate Pairs
-                </Button>
+
               </div>
             </div>
 
@@ -388,6 +387,7 @@ export default function Home() {
                             <MatchForm
                               preselectedTeamA={[pair.player1.id, pair.player2.id]}
                               onSuccess={() => setMatchFormOpen(false)}
+                              availableTeams={allPairs}
                             />
                           </DialogContent>
                         </Dialog>
@@ -417,7 +417,10 @@ export default function Home() {
                   <DialogHeader>
                     <DialogTitle>Record New Match</DialogTitle>
                   </DialogHeader>
-                  <MatchForm onSuccess={() => setMatchFormOpen(false)} />
+                  <MatchForm 
+                    onSuccess={() => setMatchFormOpen(false)}
+                    availableTeams={allPairs}
+                  />
                 </DialogContent>
               </Dialog>
             </div>
@@ -428,7 +431,11 @@ export default function Home() {
                 <CardTitle>Quick Match Recording</CardTitle>
               </CardHeader>
               <CardContent>
-                <MatchForm onSuccess={() => {}} embedded />
+                <MatchForm 
+                  onSuccess={() => {}} 
+                  embedded 
+                  availableTeams={allPairs}
+                />
               </CardContent>
             </Card>
 
