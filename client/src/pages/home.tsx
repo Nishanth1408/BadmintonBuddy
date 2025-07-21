@@ -242,7 +242,9 @@ export default function Home() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {players.map((player, index) => {
+                {players
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((player, index) => {
                   const stats = statsData?.playerStats.find(s => s.playerId === player.id);
                   return (
                     <Card key={player.id} className="hover:shadow-md transition-shadow">

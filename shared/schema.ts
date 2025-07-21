@@ -71,6 +71,7 @@ export interface StatsResponse {
   teamStats: TeamStats[];
   totalMatches: number;
   activePlayers: number;
+  weeklyMatches: number;
 }
 
 export interface DoublesTeam {
