@@ -124,8 +124,73 @@ export class MemStorage implements IStorage {
       });
     });
 
-    const result = Array.from(statsMap.values()).sort((a, b) => b.winRate - a.winRate);
-    
+    // Generate skill level suggestions
+    const result = Array.from(statsMap.values()).map(stats => {
+      const player = allPlayers.find(p => p.id === stats.playerId);
+      if (!player) return stats;
+
+      let suggestion: "increase" | "decrease" | "maintain" = "maintain";
+      let suggestedSkillLevel = player.skillLevel;
+      let suggestionReason = "Performance matches current skill level";
+      
+      if (stats.totalMatches >= 3) { // Only suggest after sufficient matches
+        let strongerOpponentWins = 0;
+        let weakerOpponentLosses = 0;
+        
+        // Analyze match quality
+        allMatches.forEach(match => {
+          const isPlayerInTeamA = [match.teamAPlayer1Id, match.teamAPlayer2Id].includes(player.id);
+          const isPlayerInTeamB = [match.teamBPlayer1Id, match.teamBPlayer2Id].includes(player.id);
+          
+          if (isPlayerInTeamA || isPlayerInTeamB) {
+            // Get opponent team players
+            const opponentIds = isPlayerInTeamA 
+              ? [match.teamBPlayer1Id, match.teamBPlayer2Id]
+              : [match.teamAPlayer1Id, match.teamAPlayer2Id];
+            
+            const opponentPlayers = opponentIds.map(id => allPlayers.find(p => p.id === id)).filter(Boolean);
+            if (opponentPlayers.length > 0) {
+              const avgOpponentSkill = opponentPlayers.reduce((sum, p) => sum + p!.skillLevel, 0) / opponentPlayers.length;
+              const playerWon = (isPlayerInTeamA && match.winnerId === 1) || (isPlayerInTeamB && match.winnerId === 2);
+              
+              if (playerWon && avgOpponentSkill > player.skillLevel) {
+                strongerOpponentWins++;
+              } else if (!playerWon && avgOpponentSkill < player.skillLevel) {
+                weakerOpponentLosses++;
+              }
+            }
+          }
+        });
+        
+        if (stats.winRate >= 80 && strongerOpponentWins > 0) {
+          suggestion = "increase";
+          suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
+          suggestionReason = `High win rate (${stats.winRate}%) with wins against stronger opponents`;
+        } else if (stats.winRate >= 75 && stats.totalMatches >= 5) {
+          suggestion = "increase";
+          suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
+          suggestionReason = `Consistently winning (${stats.winRate}%) - ready for higher competition`;
+        } else if (stats.winRate <= 25 && weakerOpponentLosses > 0) {
+          suggestion = "decrease";
+          suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
+          suggestionReason = `Low win rate (${stats.winRate}%) with losses to weaker opponents`;
+        } else if (stats.winRate <= 30 && stats.totalMatches >= 5) {
+          suggestion = "decrease";
+          suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
+          suggestionReason = `Struggling at current level (${stats.winRate}% win rate)`;
+        }
+      } else if (stats.totalMatches > 0) {
+        suggestionReason = `Need more matches (${stats.totalMatches}/3) for accurate assessment`;
+      }
+
+      return {
+        ...stats,
+        suggestedSkillLevel,
+        suggestion,
+        suggestionReason,
+      };
+    }).sort((a, b) => b.winRate - a.winRate);
+
     if (playerId) {
       return result.filter(stats => stats.playerId === playerId);
     }

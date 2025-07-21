@@ -284,19 +284,42 @@ export default function Home() {
                         </div>
                         
                         {stats && (
-                          <div className="grid grid-cols-3 gap-4 text-center pt-4 border-t border-gray-100">
-                            <div>
-                              <div className="text-lg font-bold text-green-600">{stats.wins}</div>
-                              <div className="text-xs text-gray-500">Wins</div>
+                          <div className="pt-4 border-t border-gray-100">
+                            <div className="grid grid-cols-3 gap-4 text-center mb-3">
+                              <div>
+                                <div className="text-lg font-bold text-green-600">{stats.wins}</div>
+                                <div className="text-xs text-gray-500">Wins</div>
+                              </div>
+                              <div>
+                                <div className="text-lg font-bold text-red-500">{stats.losses}</div>
+                                <div className="text-xs text-gray-500">Losses</div>
+                              </div>
+                              <div>
+                                <div className="text-lg font-bold text-gray-600">{stats.winRate}%</div>
+                                <div className="text-xs text-gray-500">Win Rate</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-lg font-bold text-red-500">{stats.losses}</div>
-                              <div className="text-xs text-gray-500">Losses</div>
-                            </div>
-                            <div>
-                              <div className="text-lg font-bold text-gray-600">{stats.winRate}%</div>
-                              <div className="text-xs text-gray-500">Win Rate</div>
-                            </div>
+                            
+                            {stats.suggestion && stats.suggestedSkillLevel && (
+                              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-medium text-gray-700">Skill Level Suggestion:</span>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${
+                                        stats.suggestion === 'increase' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        stats.suggestion === 'decrease' ? 'bg-red-50 text-red-700 border-red-200' :
+                                        'bg-blue-50 text-blue-700 border-blue-200'
+                                      }`}
+                                    >
+                                      {stats.suggestion === 'increase' ? '↗' : stats.suggestion === 'decrease' ? '↘' : '→'} Level {stats.suggestedSkillLevel}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-600 leading-relaxed">{stats.suggestionReason}</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </CardContent>

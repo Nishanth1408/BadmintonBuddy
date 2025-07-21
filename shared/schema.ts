@@ -54,6 +54,9 @@ export interface PlayerStats {
   wins: number;
   losses: number;
   winRate: number;
+  suggestedSkillLevel?: number;
+  suggestion?: "increase" | "decrease" | "maintain";
+  suggestionReason?: string;
 }
 
 export interface TeamStats {
