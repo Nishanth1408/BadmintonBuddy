@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
 import PlayerForm from "../components/player-form";
 import MatchForm from "../components/match-form";
-import type { Player, Match, PlayerStats, DoublesTeam } from "@shared/schema";
+import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse } from "@shared/schema";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("players");
@@ -30,7 +30,7 @@ export default function Home() {
     queryKey: ["/api/matches"],
   });
 
-  const { data: pairs = [], isLoading: pairsLoading } = useQuery<DoublesTeam[]>({
+  const { data: pairs = [], isLoading: pairsLoading, refetch: refetchPairs } = useQuery<DoublesTeam[]>({
     queryKey: ["/api/pairs", skillFilter],
     queryFn: async () => {
       const url = `/api/pairs?skillLevel=${encodeURIComponent(skillFilter)}`;
@@ -38,7 +38,9 @@ export default function Home() {
       if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
       return await res.json();
     },
-    enabled: activeTab === "pairs" || activeTab === "matches",
+    enabled: players.length >= 2, // Auto-fetch when there are enough players
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const { data: allPairs = [] } = useQuery<DoublesTeam[]>({
@@ -49,15 +51,12 @@ export default function Home() {
       if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
       return await res.json();
     },
-    enabled: activeTab === "matches",
+    enabled: players.length >= 2, // Auto-fetch when there are enough players
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
-  const { data: statsData, isLoading: statsLoading } = useQuery<{
-    playerStats: PlayerStats[];
-    totalMatches: number;
-    activePlayers: number;
-    weeklyMatches: number;
-  }>({
+  const { data: statsData, isLoading: statsLoading } = useQuery<StatsResponse>({
     queryKey: ["/api/stats"],
     enabled: activeTab === "stats",
   });
@@ -357,12 +356,17 @@ export default function Home() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-gray-900">Team {String.fromCharCode(65 + index)}</h3>
-                        <Badge
-                          variant={pair.balanceLevel === "Balanced" ? "default" : "secondary"}
-                          className={pair.balanceLevel === "Balanced" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
-                        >
-                          {pair.balanceLevel}
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            variant={pair.balanceLevel === "Balanced" ? "default" : "secondary"}
+                            className={pair.balanceLevel === "Balanced" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                          >
+                            {pair.balanceLevel}
+                          </Badge>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            Skill Score: {pair.skillScore}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-center space-x-3">
@@ -580,81 +584,174 @@ export default function Home() {
               </Card>
             </div>
 
-            {/* Leaderboard */}
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Player Leaderboard</CardTitle>
-                  <Select defaultValue="all-time">
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-time">All Time</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {statsLoading ? (
-                  <div className="divide-y divide-gray-200">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="p-6 animate-pulse">
-                        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+            {/* Performance Statistics */}
+            <Tabs defaultValue="individual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="individual">Individual Stats</TabsTrigger>
+                <TabsTrigger value="teams">Team Stats</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="individual" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Player Leaderboard</CardTitle>
+                      <Select defaultValue="all-time">
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all-time">All Time</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {statsLoading ? (
+                      <div className="divide-y divide-gray-200">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="p-6 animate-pulse">
+                            <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : !statsData?.playerStats.length ? (
-                  <div className="p-12 text-center">
-                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No statistics yet</h3>
-                    <p className="text-gray-500">Record some matches to see player statistics.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
-                    {statsData.playerStats.map((playerStat, index) => (
-                      <div key={playerStat.playerId} className="p-6 flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 flex items-center justify-center">
-                            <span className="text-lg font-bold text-gray-600">{index + 1}</span>
-                          </div>
-                          <div className={`w-12 h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold`}>
-                            {getPlayerInitials(playerStat.name)}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{playerStat.name}</h4>
-                            <p className="text-sm text-gray-500">{playerStat.skillLevel}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-6">
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-gray-900">{playerStat.totalMatches}</p>
-                            <p className="text-xs text-gray-500">Matches</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-green-600">{playerStat.wins}</p>
-                            <p className="text-xs text-gray-500">Wins</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-gray-900">{playerStat.winRate}%</p>
-                            <p className="text-xs text-gray-500">Win Rate</p>
-                          </div>
-                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-green-600" 
-                              style={{ width: `${playerStat.winRate}%` }}
-                            />
-                          </div>
-                        </div>
+                    ) : !statsData?.playerStats.length ? (
+                      <div className="p-12 text-center">
+                        <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No statistics yet</h3>
+                        <p className="text-gray-500">Record some matches to see player statistics.</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {statsData.playerStats.map((playerStat, index) => (
+                          <div key={playerStat.playerId} className="p-6 flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-8 h-8 flex items-center justify-center">
+                                <span className="text-lg font-bold text-gray-600">{index + 1}</span>
+                              </div>
+                              <div className={`w-12 h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold`}>
+                                {getPlayerInitials(playerStat.name)}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{playerStat.name}</h4>
+                                <p className="text-sm text-gray-500">Level {playerStat.skillLevel}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-6">
+                              <div className="text-center">
+                                <p className="text-lg font-bold text-gray-900">{playerStat.totalMatches}</p>
+                                <p className="text-xs text-gray-500">Matches</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-lg font-bold text-green-600">{playerStat.wins}</p>
+                                <p className="text-xs text-gray-500">Wins</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-lg font-bold text-gray-900">{playerStat.winRate}%</p>
+                                <p className="text-xs text-gray-500">Win Rate</p>
+                              </div>
+                              <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-green-600" 
+                                  style={{ width: `${playerStat.winRate}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="teams" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Doubles Team Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {statsLoading ? (
+                      <div className="divide-y divide-gray-200">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="p-6 animate-pulse">
+                            <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : !statsData?.teamStats?.length ? (
+                      <div className="p-12 text-center">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No team statistics yet</h3>
+                        <p className="text-gray-500">Record some doubles matches to see team performance.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {statsData.teamStats
+                          .sort((a, b) => b.winRate - a.winRate)
+                          .map((teamStat, index) => (
+                          <div key={`${teamStat.player1.id}-${teamStat.player2.id}`} className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-8 h-8 flex items-center justify-center">
+                                  <span className="text-lg font-bold text-gray-600">{index + 1}</span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                    {getPlayerInitials(teamStat.player1.name)}
+                                  </div>
+                                  <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                    {getPlayerInitials(teamStat.player2.name)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">
+                                    {teamStat.player1.name} & {teamStat.player2.name}
+                                  </h4>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                      Skill Score: {teamStat.skillScore}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-6">
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">{teamStat.totalMatches}</p>
+                                  <p className="text-xs text-gray-500">Matches</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-green-600">{teamStat.wins}</p>
+                                  <p className="text-xs text-gray-500">Wins</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-red-600">{teamStat.losses}</p>
+                                  <p className="text-xs text-gray-500">Losses</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">{teamStat.winRate}%</p>
+                                  <p className="text-xs text-gray-500">Win Rate</p>
+                                </div>
+                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-600" 
+                                    style={{ width: `${teamStat.winRate}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </main>

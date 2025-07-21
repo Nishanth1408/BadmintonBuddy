@@ -93,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             player1,
             player2,
             balanceLevel,
+            skillScore: player1.skillLevel + player2.skillLevel,
           });
         }
       }
@@ -156,6 +157,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const matches = await storage.getAllMatches();
       const players = await storage.getAllPlayers();
       
+      // Calculate team statistics
+      const teamStatsMap = new Map<string, {
+        player1: any,
+        player2: any,
+        skillScore: number,
+        totalMatches: number,
+        wins: number,
+        losses: number
+      }>();
+
+      for (const match of matches) {
+        // Team A
+        const teamAKey = [match.teamAPlayer1Id, match.teamAPlayer2Id].sort().join('-');
+        const teamAPlayer1 = players.find(p => p.id === match.teamAPlayer1Id);
+        const teamAPlayer2 = players.find(p => p.id === match.teamAPlayer2Id);
+        
+        if (teamAPlayer1 && teamAPlayer2) {
+          if (!teamStatsMap.has(teamAKey)) {
+            teamStatsMap.set(teamAKey, {
+              player1: teamAPlayer1,
+              player2: teamAPlayer2,
+              skillScore: teamAPlayer1.skillLevel + teamAPlayer2.skillLevel,
+              totalMatches: 0,
+              wins: 0,
+              losses: 0
+            });
+          }
+          
+          const teamAStat = teamStatsMap.get(teamAKey)!;
+          teamAStat.totalMatches++;
+          if (match.winnerId === 1) teamAStat.wins++;
+          else teamAStat.losses++;
+        }
+
+        // Team B
+        const teamBKey = [match.teamBPlayer1Id, match.teamBPlayer2Id].sort().join('-');
+        const teamBPlayer1 = players.find(p => p.id === match.teamBPlayer1Id);
+        const teamBPlayer2 = players.find(p => p.id === match.teamBPlayer2Id);
+        
+        if (teamBPlayer1 && teamBPlayer2) {
+          if (!teamStatsMap.has(teamBKey)) {
+            teamStatsMap.set(teamBKey, {
+              player1: teamBPlayer1,
+              player2: teamBPlayer2,
+              skillScore: teamBPlayer1.skillLevel + teamBPlayer2.skillLevel,
+              totalMatches: 0,
+              wins: 0,
+              losses: 0
+            });
+          }
+          
+          const teamBStat = teamStatsMap.get(teamBKey)!;
+          teamBStat.totalMatches++;
+          if (match.winnerId === 2) teamBStat.wins++;
+          else teamBStat.losses++;
+        }
+      }
+
+      const teamStats = Array.from(teamStatsMap.values()).map(team => ({
+        ...team,
+        winRate: team.totalMatches > 0 ? Math.round((team.wins / team.totalMatches) * 100) : 0
+      }));
+      
       // Calculate additional stats
       const totalMatches = matches.length;
       const activePlayers = players.length;
@@ -169,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         playerStats,
+        teamStats,
         totalMatches,
         activePlayers,
         weeklyMatches,

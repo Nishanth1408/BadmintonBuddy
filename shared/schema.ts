@@ -56,8 +56,26 @@ export interface PlayerStats {
   winRate: number;
 }
 
+export interface TeamStats {
+  player1: Player;
+  player2: Player;
+  skillScore: number;
+  totalMatches: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+}
+
+export interface StatsResponse {
+  playerStats: PlayerStats[];
+  teamStats: TeamStats[];
+  totalMatches: number;
+  activePlayers: number;
+}
+
 export interface DoublesTeam {
   player1: Player;
   player2: Player;
   balanceLevel: "Balanced" | "Unbalanced";
+  skillScore: number; // Sum of both players' skill levels
 }
