@@ -351,11 +351,13 @@ export default function Home() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pairs.map((pair, index) => (
+                {pairs
+                  .sort((a, b) => b.skillScore - a.skillScore)
+                  .map((pair, index) => (
                   <Card key={index}>
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-900">Team {String.fromCharCode(65 + index)}</h3>
+                        <h3 className="font-semibold text-gray-900">Team {index + 1}</h3>
                         <div className="flex items-center space-x-2">
                           <Badge
                             variant={pair.balanceLevel === "Balanced" ? "default" : "secondary"}

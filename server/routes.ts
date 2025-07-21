@@ -98,6 +98,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Sort pairs by skill score in descending order
+      pairs.sort((a, b) => b.skillScore - a.skillScore);
+      
       res.json(pairs);
     } catch (error) {
       res.status(500).json({ error: "Failed to generate pairs" });
