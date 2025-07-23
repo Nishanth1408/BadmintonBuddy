@@ -20,10 +20,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: (userId: number) => 
-      apiRequest(`/api/auth/login/${userId}`, {
-        method: "POST",
-      }),
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest("POST", `/api/auth/login/${userId}`);
+      return await response.json();
+    },
     onSuccess: (user) => {
       toast({
         title: "Welcome back!",

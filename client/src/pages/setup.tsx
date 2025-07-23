@@ -36,11 +36,10 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
   });
 
   const setupMutation = useMutation({
-    mutationFn: (data: SetupForm) => 
-      apiRequest(`/api/auth/setup`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    mutationFn: async (data: SetupForm) => {
+      const response = await apiRequest("POST", "/api/auth/setup", data);
+      return await response.json();
+    },
     onSuccess: (manager) => {
       toast({
         title: "Welcome, Manager!",
