@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const players = pgTable("players", {
@@ -100,3 +101,34 @@ export interface DoublesTeam {
   balanceLevel: "Balanced" | "Unbalanced";
   skillScore: number; // Sum of both players' skill levels
 }
+
+// Database relations
+export const playersRelations = relations(players, ({ many }) => ({
+  teamAPlayer1Matches: many(matches, { relationName: "teamAPlayer1" }),
+  teamAPlayer2Matches: many(matches, { relationName: "teamAPlayer2" }),
+  teamBPlayer1Matches: many(matches, { relationName: "teamBPlayer1" }),
+  teamBPlayer2Matches: many(matches, { relationName: "teamBPlayer2" }),
+}));
+
+export const matchesRelations = relations(matches, ({ one }) => ({
+  teamAPlayer1: one(players, {
+    fields: [matches.teamAPlayer1Id],
+    references: [players.id],
+    relationName: "teamAPlayer1",
+  }),
+  teamAPlayer2: one(players, {
+    fields: [matches.teamAPlayer2Id],
+    references: [players.id],
+    relationName: "teamAPlayer2",
+  }),
+  teamBPlayer1: one(players, {
+    fields: [matches.teamBPlayer1Id],
+    references: [players.id],
+    relationName: "teamBPlayer1",
+  }),
+  teamBPlayer2: one(players, {
+    fields: [matches.teamBPlayer2Id],
+    references: [players.id],
+    relationName: "teamBPlayer2",
+  }),
+}));

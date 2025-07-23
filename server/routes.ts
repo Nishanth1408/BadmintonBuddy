@@ -61,6 +61,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data reset endpoint - Manager only
+  app.post("/api/auth/reset", async (req, res) => {
+    try {
+      const currentUser = await storage.getCurrentUser();
+      
+      if (!currentUser || currentUser.role !== "manager") {
+        return res.status(403).json({ error: "Only managers can reset data" });
+      }
+      
+      await storage.resetAllData();
+      res.json({ message: "All data has been reset successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset data" });
+    }
+  });
+
   // Player routes
   app.get("/api/players", async (req, res) => {
     try {

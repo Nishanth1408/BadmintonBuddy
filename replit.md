@@ -20,7 +20,7 @@ Preferred communication style: Simple, everyday language.
   - Skill level dropdown now shows "1 - Beginner", "5 - Intermediate", "9 - Advanced" format
   - Balance analysis uses ≤2 skill point difference threshold
   - Filter options updated to use skill ranges: "Beginner (1-3)", "Intermediate (4-7)", "Advanced (8-10)"
-- **Role-Based Access Control System** (Latest - January 2025):
+- **Role-Based Access Control System**:
   - Added Manager and Player role distinction with different permissions
   - Initial setup flow for creating the first manager account
   - Login system allowing users to select their profile
@@ -28,6 +28,13 @@ Preferred communication style: Simple, everyday language.
   - Player permissions: View-only access to players and matches, can view statistics and pairs
   - Performance-based skill level suggestions with detailed reasoning after 3+ matches
   - Match recording restricted to managers only for data integrity
+- **Database Integration & Data Management** (Latest - January 2025):
+  - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
+  - Persistent data storage ensures data survives application restarts
+  - Added comprehensive database schema with proper relations between players and matches
+  - Implemented DatabaseStorage class with full CRUD operations
+  - Added manager-only data reset functionality for cleaning all application data
+  - Database migrations handled automatically via `npm run db:push`
 
 ## System Architecture
 

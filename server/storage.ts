@@ -1,4 +1,6 @@
 import { players, matches, type Player, type InsertPlayer, type Match, type InsertMatch, type PlayerStats, type AuthUser, type SetupRequest } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Authentication and Setup
@@ -21,49 +23,39 @@ export interface IStorage {
   
   // Statistics
   getPlayerStats(playerId?: number): Promise<PlayerStats[]>;
+  
+  // Data management
+  resetAllData(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private players: Map<number, Player>;
-  private matches: Map<number, Match>;
-  private currentPlayerId: number;
-  private currentMatchId: number;
-  private currentUser: AuthUser | null;
-  private initialized: boolean;
+// Database Storage Implementation
 
-  constructor() {
-    this.players = new Map();
-    this.matches = new Map();
-    this.currentPlayerId = 1;
-    this.currentMatchId = 1;
-    this.currentUser = null;
-    this.initialized = false;
-  }
+export class DatabaseStorage implements IStorage {
+  private currentUser: AuthUser | null = null;
 
-  // Authentication and Setup
   async isInitialized(): Promise<boolean> {
-    return this.initialized;
+    const managers = await db.select().from(players).where(eq(players.role, "manager"));
+    return managers.length > 0;
   }
 
   async setupInitialManager(setup: SetupRequest): Promise<AuthUser> {
-    const manager: Player = {
-      id: this.currentPlayerId++,
-      name: setup.managerName,
-      skillLevel: setup.managerSkillLevel,
-      role: "manager",
-      isActive: true,
-    };
-    
-    this.players.set(manager.id, manager);
-    this.initialized = true;
-    
+    const [manager] = await db
+      .insert(players)
+      .values({
+        name: setup.managerName,
+        skillLevel: setup.managerSkillLevel,
+        role: "manager",
+        isActive: true,
+      })
+      .returning();
+
     const authUser: AuthUser = {
       id: manager.id,
       name: manager.name,
-      role: manager.role,
+      role: manager.role as "manager" | "player",
       skillLevel: manager.skillLevel,
     };
-    
+
     this.currentUser = authUser;
     return authUser;
   }
@@ -73,189 +65,144 @@ export class MemStorage implements IStorage {
   }
 
   async setCurrentUser(userId: number): Promise<void> {
-    const player = this.players.get(userId);
-    if (player) {
+    const [user] = await db.select().from(players).where(eq(players.id, userId));
+    if (user) {
       this.currentUser = {
-        id: player.id,
-        name: player.name,
-        role: player.role,
-        skillLevel: player.skillLevel,
+        id: user.id,
+        name: user.name,
+        role: user.role as "manager" | "player",
+        skillLevel: user.skillLevel,
       };
     }
   }
 
-  // Player management
   async getPlayer(id: number): Promise<Player | undefined> {
-    return this.players.get(id);
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
   }
 
   async getAllPlayers(): Promise<Player[]> {
-    return Array.from(this.players.values());
+    return await db.select().from(players).where(eq(players.isActive, true));
   }
 
-  async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
-    const id = this.currentPlayerId++;
-    const player: Player = { 
-      ...insertPlayer, 
-      id,
-      isActive: true,
-    };
-    this.players.set(id, player);
-    return player;
+  async createPlayer(player: InsertPlayer): Promise<Player> {
+    const [newPlayer] = await db
+      .insert(players)
+      .values({
+        name: player.name,
+        skillLevel: player.skillLevel,
+        role: player.role || "player",
+        isActive: true,
+      })
+      .returning();
+    return newPlayer;
   }
 
   async updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<Player> {
-    const existingPlayer = this.players.get(id);
-    if (!existingPlayer) {
-      throw new Error(`Player with id ${id} not found`);
-    }
-    const updatedPlayer: Player = { ...existingPlayer, ...updates };
-    this.players.set(id, updatedPlayer);
+    const [updatedPlayer] = await db
+      .update(players)
+      .set(updates)
+      .where(eq(players.id, id))
+      .returning();
     return updatedPlayer;
   }
 
   async deletePlayer(id: number): Promise<boolean> {
-    return this.players.delete(id);
+    const result = await db
+      .update(players)
+      .set({ isActive: false })
+      .where(eq(players.id, id));
+    return result.rowCount > 0;
   }
 
-  // Match management
   async getMatch(id: number): Promise<Match | undefined> {
-    return this.matches.get(id);
+    const [match] = await db.select().from(matches).where(eq(matches.id, id));
+    return match || undefined;
   }
 
   async getAllMatches(): Promise<Match[]> {
-    return Array.from(this.matches.values()).sort((a, b) => 
-      new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
-    );
+    return await db.select().from(matches);
   }
 
-  async createMatch(insertMatch: InsertMatch): Promise<Match> {
-    const id = this.currentMatchId++;
-    const match: Match = { 
-      ...insertMatch, 
-      id, 
-      playedAt: new Date() 
-    };
-    this.matches.set(id, match);
-    return match;
+  async createMatch(match: InsertMatch): Promise<Match> {
+    const [newMatch] = await db
+      .insert(matches)
+      .values(match)
+      .returning();
+    return newMatch;
   }
 
-  // Statistics
   async getPlayerStats(playerId?: number): Promise<PlayerStats[]> {
-    const allPlayers = Array.from(this.players.values());
-    const allMatches = Array.from(this.matches.values());
+    const allPlayers = await this.getAllPlayers();
+    const allMatches = await this.getAllMatches();
     
-    const statsMap = new Map<number, PlayerStats>();
+    const stats: PlayerStats[] = [];
     
-    // Initialize stats for all players
-    allPlayers.forEach(player => {
-      statsMap.set(player.id, {
+    for (const player of allPlayers) {
+      if (playerId && player.id !== playerId) continue;
+      
+      const playerMatches = allMatches.filter(match => 
+        match.teamAPlayer1Id === player.id ||
+        match.teamAPlayer2Id === player.id ||
+        match.teamBPlayer1Id === player.id ||
+        match.teamBPlayer2Id === player.id
+      );
+      
+      let wins = 0;
+      for (const match of playerMatches) {
+        const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
+        const teamWon = match.winnerId === 1 ? "A" : "B";
+        if ((isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B")) {
+          wins++;
+        }
+      }
+      
+      const losses = playerMatches.length - wins;
+      const winRate = playerMatches.length > 0 ? Math.round((wins / playerMatches.length) * 100) : 0;
+      
+      let suggestedSkillLevel: number | undefined;
+      let suggestion: "increase" | "decrease" | "maintain" | undefined;
+      let suggestionReason: string | undefined;
+      
+      if (playerMatches.length >= 3) {
+        if (winRate >= 70) {
+          suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
+          suggestion = "increase";
+          suggestionReason = `High win rate (${winRate}%) suggests skill level could be increased`;
+        } else if (winRate <= 30) {
+          suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
+          suggestion = "decrease";
+          suggestionReason = `Low win rate (${winRate}%) suggests skill level could be decreased`;
+        } else {
+          suggestedSkillLevel = player.skillLevel;
+          suggestion = "maintain";
+          suggestionReason = `Balanced win rate (${winRate}%) indicates appropriate skill level`;
+        }
+      }
+      
+      stats.push({
         playerId: player.id,
         name: player.name,
         skillLevel: player.skillLevel,
-        totalMatches: 0,
-        wins: 0,
-        losses: 0,
-        winRate: 0,
-      });
-    });
-
-    // Calculate stats from matches
-    allMatches.forEach(match => {
-      const teamAPlayers = [match.teamAPlayer1Id, match.teamAPlayer2Id];
-      const teamBPlayers = [match.teamBPlayer1Id, match.teamBPlayer2Id];
-      const teamAWon = match.winnerId === 1;
-
-      [...teamAPlayers, ...teamBPlayers].forEach(pId => {
-        const stats = statsMap.get(pId);
-        if (stats) {
-          stats.totalMatches++;
-          if (teamAPlayers.includes(pId) && teamAWon) {
-            stats.wins++;
-          } else if (teamBPlayers.includes(pId) && !teamAWon) {
-            stats.wins++;
-          } else {
-            stats.losses++;
-          }
-          stats.winRate = stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0;
-        }
-      });
-    });
-
-    // Generate skill level suggestions
-    const result = Array.from(statsMap.values()).map(stats => {
-      const player = allPlayers.find(p => p.id === stats.playerId);
-      if (!player) return stats;
-
-      let suggestion: "increase" | "decrease" | "maintain" = "maintain";
-      let suggestedSkillLevel = player.skillLevel;
-      let suggestionReason = "Performance matches current skill level";
-      
-      if (stats.totalMatches >= 3) { // Only suggest after sufficient matches
-        let strongerOpponentWins = 0;
-        let weakerOpponentLosses = 0;
-        
-        // Analyze match quality
-        allMatches.forEach(match => {
-          const isPlayerInTeamA = [match.teamAPlayer1Id, match.teamAPlayer2Id].includes(player.id);
-          const isPlayerInTeamB = [match.teamBPlayer1Id, match.teamBPlayer2Id].includes(player.id);
-          
-          if (isPlayerInTeamA || isPlayerInTeamB) {
-            // Get opponent team players
-            const opponentIds = isPlayerInTeamA 
-              ? [match.teamBPlayer1Id, match.teamBPlayer2Id]
-              : [match.teamAPlayer1Id, match.teamAPlayer2Id];
-            
-            const opponentPlayers = opponentIds.map(id => allPlayers.find(p => p.id === id)).filter(Boolean);
-            if (opponentPlayers.length > 0) {
-              const avgOpponentSkill = opponentPlayers.reduce((sum, p) => sum + p!.skillLevel, 0) / opponentPlayers.length;
-              const playerWon = (isPlayerInTeamA && match.winnerId === 1) || (isPlayerInTeamB && match.winnerId === 2);
-              
-              if (playerWon && avgOpponentSkill > player.skillLevel) {
-                strongerOpponentWins++;
-              } else if (!playerWon && avgOpponentSkill < player.skillLevel) {
-                weakerOpponentLosses++;
-              }
-            }
-          }
-        });
-        
-        if (stats.winRate >= 80 && strongerOpponentWins > 0) {
-          suggestion = "increase";
-          suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
-          suggestionReason = `High win rate (${stats.winRate}%) with wins against stronger opponents`;
-        } else if (stats.winRate >= 75 && stats.totalMatches >= 5) {
-          suggestion = "increase";
-          suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
-          suggestionReason = `Consistently winning (${stats.winRate}%) - ready for higher competition`;
-        } else if (stats.winRate <= 25 && weakerOpponentLosses > 0) {
-          suggestion = "decrease";
-          suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
-          suggestionReason = `Low win rate (${stats.winRate}%) with losses to weaker opponents`;
-        } else if (stats.winRate <= 30 && stats.totalMatches >= 5) {
-          suggestion = "decrease";
-          suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
-          suggestionReason = `Struggling at current level (${stats.winRate}% win rate)`;
-        }
-      } else if (stats.totalMatches > 0) {
-        suggestionReason = `Need more matches (${stats.totalMatches}/3) for accurate assessment`;
-      }
-
-      return {
-        ...stats,
-        role: player.role,
+        role: player.role as "manager" | "player",
+        totalMatches: playerMatches.length,
+        wins,
+        losses,
+        winRate,
         suggestedSkillLevel,
         suggestion,
         suggestionReason,
-      };
-    }).sort((a, b) => b.winRate - a.winRate);
-
-    if (playerId) {
-      return result.filter(stats => stats.playerId === playerId);
+      });
     }
     
-    return result;
+    return stats;
+  }
+
+  async resetAllData(): Promise<void> {
+    await db.delete(matches);
+    await db.delete(players);
+    this.currentUser = null;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

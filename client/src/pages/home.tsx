@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw, LogOut, Crown, User } from "lucide-react";
+import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw, LogOut, Crown, User, AlertTriangle } from "lucide-react";
 import PlayerForm from "../components/player-form";
 import MatchForm from "../components/match-form";
 import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse, AuthUser } from "@shared/schema";
@@ -80,6 +80,20 @@ export default function Home({ currentUser }: HomeProps) {
     },
   });
 
+  const resetDataMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/auth/reset");
+    },
+    onSuccess: () => {
+      toast({ title: "All data has been reset successfully" });
+      // Reload the page to return to setup
+      setTimeout(() => window.location.reload(), 1000);
+    },
+    onError: () => {
+      toast({ title: "Failed to reset data", variant: "destructive" });
+    },
+  });
+
   const handleEditPlayer = (player: Player) => {
     setEditingPlayer(player);
     setPlayerFormOpen(true);
@@ -89,6 +103,10 @@ export default function Home({ currentUser }: HomeProps) {
     if (confirm("Are you sure you want to delete this player?")) {
       deletePlayerMutation.mutate(playerId);
     }
+  };
+
+  const handleResetData = async () => {
+    resetDataMutation.mutate();
   };
 
   const getPlayerInitials = (name: string) => {
@@ -173,14 +191,61 @@ export default function Home({ currentUser }: HomeProps) {
                     {currentUser.role === "manager" ? "Manager" : "Player"}
                   </Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center space-x-2">
+                  {currentUser.role === "manager" && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-500 hover:text-red-600"
+                          title="Reset All Data"
+                        >
+                          <AlertTriangle className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Reset All Data</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Are you sure?</h3>
+                            <p className="text-gray-600 mb-4">
+                              This will permanently delete all players, matches, and statistics. This action cannot be undone.
+                            </p>
+                          </div>
+                          <div className="flex space-x-3">
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="flex-1">
+                                Cancel
+                              </Button>
+                            </DialogTrigger>
+                            <Button
+                              variant="destructive"
+                              className="flex-1"
+                              onClick={handleResetData}
+                              disabled={resetDataMutation.isPending}
+                            >
+                              {resetDataMutation.isPending ? "Resetting..." : "Reset All Data"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="text-gray-500 hover:text-gray-700"
+                    title="Switch User"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
