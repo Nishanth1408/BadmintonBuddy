@@ -8,7 +8,7 @@ export interface IStorage {
   isInitialized(): Promise<boolean>;
   setupInitialManager(setup: SetupRequest): Promise<AuthUser>;
   getCurrentUser(): Promise<AuthUser | null>;
-  setCurrentUser(userId: number): Promise<void>;
+  setCurrentUser(userId: number | null): Promise<void>;
   
   // Player management
   getPlayer(id: number): Promise<Player | undefined>;

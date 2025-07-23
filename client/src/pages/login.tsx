@@ -110,7 +110,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
           <CardTitle className="text-2xl">Welcome to Kanteeravas Badminton Club</CardTitle>
           <CardDescription>
-            Select your profile to continue
+            Select your profile to receive SMS verification code
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,6 +133,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium text-gray-900">{player.name}</div>
+                    <div className="text-sm text-gray-600 mt-1">{player.mobileNumber}</div>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant={player.role === "manager" ? "default" : "secondary"} className="text-xs">
                         {player.role === "manager" ? "Manager" : "Player"}
@@ -140,6 +141,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
                         {getSkillLevelLabel(player.skillLevel)}
                       </Badge>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className="text-xs text-blue-600 font-medium">
+                      <Smartphone className="h-3 w-3 inline mr-1" />
+                      SMS Login
                     </div>
                   </div>
                 </div>

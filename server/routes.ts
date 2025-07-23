@@ -94,20 +94,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Legacy login endpoint (kept for compatibility)
+  // Legacy login endpoint - now blocked, requires OTP
   app.post("/api/auth/login/:id", async (req, res) => {
+    res.status(403).json({ 
+      error: "Direct login not allowed. Please use SMS OTP authentication.",
+      requiresOTP: true 
+    });
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", async (req, res) => {
     try {
-      const userId = parseInt(req.params.id);
-      await storage.setCurrentUser(userId);
-      const currentUser = await storage.getCurrentUser();
-      
-      if (!currentUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      res.json(currentUser);
+      await storage.setCurrentUser(null);
+      res.json({ message: "Logged out successfully" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to login" });
+      res.status(500).json({ error: "Failed to logout" });
     }
   });
 
