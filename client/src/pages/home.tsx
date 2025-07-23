@@ -464,40 +464,57 @@ export default function Home({ currentUser }: HomeProps) {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Match Management</h2>
-                <p className="text-gray-600 mt-1">Record games and track results</p>
+                <p className="text-gray-600 mt-1">
+                  {currentUser.role === "manager" ? "Record games and track results" : "View match history and results"}
+                </p>
               </div>
-              <Dialog open={matchFormOpen} onOpenChange={setMatchFormOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Record Match
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Record New Match</DialogTitle>
-                  </DialogHeader>
-                  <MatchForm 
-                    onSuccess={() => setMatchFormOpen(false)}
-                    availableTeams={allPairs}
-                  />
-                </DialogContent>
-              </Dialog>
+              {currentUser.role === "manager" && (
+                <Dialog open={matchFormOpen} onOpenChange={setMatchFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Record Match
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Record New Match</DialogTitle>
+                    </DialogHeader>
+                    <MatchForm 
+                      onSuccess={() => setMatchFormOpen(false)}
+                      availableTeams={allPairs}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
 
-            {/* Quick Match Form */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Quick Match Recording</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MatchForm 
-                  onSuccess={() => {}} 
-                  embedded 
-                  availableTeams={allPairs}
-                />
-              </CardContent>
-            </Card>
+            {/* Quick Match Form - Only for Managers */}
+            {currentUser.role === "manager" && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Quick Match Recording</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MatchForm 
+                    onSuccess={() => {}} 
+                    embedded 
+                    availableTeams={allPairs}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Player View - Show info message */}
+            {currentUser.role === "player" && (
+              <Card className="mb-8">
+                <CardContent className="p-6 text-center">
+                  <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Match Recording</h3>
+                  <p className="text-gray-500">Only managers can record new matches. Contact your manager to record match results.</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Match History */}
             <Card>

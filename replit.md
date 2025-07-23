@@ -24,9 +24,10 @@ Preferred communication style: Simple, everyday language.
   - Added Manager and Player role distinction with different permissions
   - Initial setup flow for creating the first manager account
   - Login system allowing users to select their profile
-  - Manager permissions: Create, edit, delete players; assign roles to new players
-  - Player permissions: View-only access to players, can still record matches and view statistics
+  - Manager permissions: Create, edit, delete players; assign roles to new players; record matches
+  - Player permissions: View-only access to players and matches, can view statistics and pairs
   - Performance-based skill level suggestions with detailed reasoning after 3+ matches
+  - Match recording restricted to managers only for data integrity
 
 ## System Architecture
 
