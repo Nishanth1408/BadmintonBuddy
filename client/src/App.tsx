@@ -8,16 +8,33 @@ import Home from "./pages/home";
 import { SetupPage } from "./pages/setup";
 import { LoginPage } from "./pages/login";
 import NotFound from "./pages/not-found";
+import Navbar from "@/components/navbar";
 import type { AuthUser } from "@shared/schema";
 
 function AuthWrapper() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
   
-  const { data: authStatus, isLoading } = useQuery({
+  const { data: authStatus, isLoading, refetch } = useQuery({
     queryKey: ["/api/auth/status"],
     staleTime: 0,
     refetchOnMount: "always",
   });
+
+  const handleLogin = (user: AuthUser) => {
+    setCurrentUser(user);
+    setShowLogin(false);
+    refetch();
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    refetch();
+  };
+
+  const handleOpenLogin = () => {
+    setShowLogin(true);
+  };
 
   if (isLoading) {
     return (
@@ -42,25 +59,26 @@ function AuthWrapper() {
     );
   }
 
-  // No user logged in - show login page
-  if (!authStatus?.user && !currentUser) {
-    return (
-      <LoginPage 
-        onLogin={(user: AuthUser) => {
-          setCurrentUser(user);
-        }} 
-      />
-    );
+  // Show login page if requested
+  if (showLogin) {
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   const user = currentUser || authStatus?.user;
 
-  // User logged in - show main app
+  // Show main app with navbar (public access)
   return (
-    <Switch>
-      <Route path="/" component={() => <Home currentUser={user} />} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar 
+        currentUser={user}
+        onLogin={handleOpenLogin}
+        onLogout={handleLogout}
+      />
+      <Switch>
+        <Route path="/" component={() => <Home currentUser={user} />} />
+        <Route component={NotFound} />
+      </Switch>
+    </div>
   );
 }
 

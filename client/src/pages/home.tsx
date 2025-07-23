@@ -14,7 +14,7 @@ import MatchForm from "../components/match-form";
 import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse, AuthUser } from "@shared/schema";
 
 interface HomeProps {
-  currentUser: AuthUser;
+  currentUser: AuthUser | null;
 }
 
 export default function Home({ currentUser }: HomeProps) {
@@ -181,18 +181,20 @@ export default function Home({ currentUser }: HomeProps) {
               {/* User Info and Logout */}
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2 text-sm">
-                  {currentUser.role === "manager" ? (
+                  {currentUser?.role === "manager" ? (
                     <Crown className="h-4 w-4 text-yellow-500" />
-                  ) : (
+                  ) : currentUser?.role === "player" ? (
                     <User className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    <User className="h-4 w-4 text-gray-500" />
                   )}
-                  <span className="font-medium text-gray-700">{currentUser.name}</span>
-                  <Badge variant={currentUser.role === "manager" ? "default" : "secondary"} className="text-xs">
-                    {currentUser.role === "manager" ? "Manager" : "Player"}
+                  <span className="font-medium text-gray-700">{currentUser?.name || "Public Viewer"}</span>
+                  <Badge variant={currentUser?.role === "manager" ? "default" : "secondary"} className="text-xs">
+                    {currentUser?.role === "manager" ? "Manager" : currentUser?.role === "player" ? "Player" : "Public"}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {currentUser.role === "manager" && (
+                  {currentUser?.role === "manager" && (
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -285,7 +287,7 @@ export default function Home({ currentUser }: HomeProps) {
                 <h2 className="text-2xl font-bold text-gray-900">Player Management</h2>
                 <p className="text-gray-600 mt-1">Manage club members and their skill levels</p>
               </div>
-              {currentUser.role === "manager" && (
+              {currentUser?.role === "manager" && (
                 <Dialog open={playerFormOpen} onOpenChange={setPlayerFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
@@ -362,7 +364,7 @@ export default function Home({ currentUser }: HomeProps) {
                             </div>
                           </div>
                           <div className="flex space-x-2">
-                            {currentUser.role === "manager" && (
+                            {currentUser?.role === "manager" && (
                               <>
                                 <Button
                                   variant="ghost"
@@ -530,10 +532,10 @@ export default function Home({ currentUser }: HomeProps) {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Match Management</h2>
                 <p className="text-gray-600 mt-1">
-                  {currentUser.role === "manager" ? "Record games and track results" : "View match history and results"}
+                  {currentUser?.role === "manager" ? "Record games and track results" : "View match history and results"}
                 </p>
               </div>
-              {currentUser.role === "manager" && (
+              {currentUser?.role === "manager" && (
                 <Dialog open={matchFormOpen} onOpenChange={setMatchFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
@@ -555,7 +557,7 @@ export default function Home({ currentUser }: HomeProps) {
             </div>
 
             {/* Quick Match Form - Only for Managers */}
-            {currentUser.role === "manager" && (
+            {currentUser?.role === "manager" && (
               <Card className="mb-8">
                 <CardHeader>
                   <CardTitle>Quick Match Recording</CardTitle>
@@ -571,7 +573,7 @@ export default function Home({ currentUser }: HomeProps) {
             )}
 
             {/* Player View - Show info message */}
-            {currentUser.role === "player" && (
+            {currentUser?.role === "player" && (
               <Card className="mb-8">
                 <CardContent className="p-6 text-center">
                   <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
