@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -6,6 +6,8 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   skillLevel: integer("skill_level").notNull(), // 1-10 scale
+  role: text("role", { enum: ["manager", "player"] }).notNull().default("player"),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const matches = pgTable("matches", {
@@ -23,8 +25,10 @@ export const matches = pgTable("matches", {
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
   skillLevel: true,
+  role: true,
 }).extend({
   skillLevel: z.number().min(1).max(10),
+  role: z.enum(["manager", "player"]).default("player"),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).pick({
@@ -50,6 +54,7 @@ export interface PlayerStats {
   playerId: number;
   name: string;
   skillLevel: number;
+  role: "manager" | "player";
   totalMatches: number;
   wins: number;
   losses: number;
@@ -57,6 +62,18 @@ export interface PlayerStats {
   suggestedSkillLevel?: number;
   suggestion?: "increase" | "decrease" | "maintain";
   suggestionReason?: string;
+}
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  role: "manager" | "player";
+  skillLevel: number;
+}
+
+export interface SetupRequest {
+  managerName: string;
+  managerSkillLevel: number;
 }
 
 export interface TeamStats {

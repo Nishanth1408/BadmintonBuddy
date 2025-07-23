@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertPlayerSchema, type Player, type InsertPlayer } from "@shared/schema";
+import { insertPlayerSchema, type Player, type InsertPlayer, type AuthUser } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface PlayerFormProps {
   player?: Player | null;
+  currentUser: AuthUser;
   onSuccess: () => void;
 }
 
-export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
+export default function PlayerForm({ player, currentUser, onSuccess }: PlayerFormProps) {
   const { toast } = useToast();
   
   const form = useForm<InsertPlayer>({
@@ -22,6 +23,7 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
     defaultValues: {
       name: player?.name || "",
       skillLevel: player?.skillLevel || 1,
+      role: player?.role || "player",
     },
   });
 
@@ -114,6 +116,33 @@ export default function PlayerForm({ player, onSuccess }: PlayerFormProps) {
             </FormItem>
           )}
         />
+
+        {currentUser.role === "manager" && (
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role</FormLabel>
+                <Select 
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="player">Player</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="flex justify-end space-x-2">
           <Button

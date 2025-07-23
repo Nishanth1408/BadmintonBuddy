@@ -8,12 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
+import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw, LogOut, Crown, User } from "lucide-react";
 import PlayerForm from "../components/player-form";
 import MatchForm from "../components/match-form";
-import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse } from "@shared/schema";
+import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse, AuthUser } from "@shared/schema";
 
-export default function Home() {
+interface HomeProps {
+  currentUser: AuthUser;
+}
+
+export default function Home({ currentUser }: HomeProps) {
   const [activeTab, setActiveTab] = useState("players");
   const [playerFormOpen, setPlayerFormOpen] = useState(false);
   const [matchFormOpen, setMatchFormOpen] = useState(false);
@@ -131,28 +135,53 @@ export default function Home() {
               <h1 className="text-xl font-bold text-gray-900">Kanteeravas Badminton Club</h1>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-4 w-80">
-                  <TabsTrigger value="players" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Players
-                  </TabsTrigger>
-                  <TabsTrigger value="pairs" className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Pairs
-                  </TabsTrigger>
-                  <TabsTrigger value="matches" className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4" />
-                    Matches
-                  </TabsTrigger>
-                  <TabsTrigger value="stats" className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Stats
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div className="flex items-center space-x-4">
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid grid-cols-4 w-80">
+                    <TabsTrigger value="players" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Players
+                    </TabsTrigger>
+                    <TabsTrigger value="pairs" className="flex items-center gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Pairs
+                    </TabsTrigger>
+                    <TabsTrigger value="matches" className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4" />
+                      Matches
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Stats
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              {/* User Info and Logout */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 text-sm">
+                  {currentUser.role === "manager" ? (
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                  ) : (
+                    <User className="h-4 w-4 text-blue-500" />
+                  )}
+                  <span className="font-medium text-gray-700">{currentUser.name}</span>
+                  <Badge variant={currentUser.role === "manager" ? "default" : "secondary"} className="text-xs">
+                    {currentUser.role === "manager" ? "Manager" : "Player"}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -191,26 +220,29 @@ export default function Home() {
                 <h2 className="text-2xl font-bold text-gray-900">Player Management</h2>
                 <p className="text-gray-600 mt-1">Manage club members and their skill levels</p>
               </div>
-              <Dialog open={playerFormOpen} onOpenChange={setPlayerFormOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Player
-                  </Button>
-                </DialogTrigger>
+              {currentUser.role === "manager" && (
+                <Dialog open={playerFormOpen} onOpenChange={setPlayerFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Player
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{editingPlayer ? "Edit Player" : "Add New Player"}</DialogTitle>
                   </DialogHeader>
                   <PlayerForm
                     player={editingPlayer}
+                    currentUser={currentUser}
                     onSuccess={() => {
                       setPlayerFormOpen(false);
                       setEditingPlayer(null);
                     }}
                   />
                 </DialogContent>
-              </Dialog>
+                </Dialog>
+              )}
             </div>
 
             {playersLoading ? (
@@ -265,21 +297,25 @@ export default function Home() {
                             </div>
                           </div>
                           <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditPlayer(player)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeletePlayer(player.id)}
-                              disabled={deletePlayerMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {currentUser.role === "manager" && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditPlayer(player)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePlayer(player.id)}
+                                  disabled={deletePlayerMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                         

@@ -1,10 +1,66 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlayerSchema, insertMatchSchema, type Player, type DoublesTeam } from "@shared/schema";
+import { insertPlayerSchema, insertMatchSchema, type Player, type DoublesTeam, type SetupRequest, type AuthUser } from "@shared/schema";
 import { z } from "zod";
 
+const setupRequestSchema = z.object({
+  managerName: z.string().min(1),
+  managerSkillLevel: z.number().min(1).max(10),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.get("/api/auth/status", async (req, res) => {
+    try {
+      const isInitialized = await storage.isInitialized();
+      const currentUser = await storage.getCurrentUser();
+      
+      res.json({
+        initialized: isInitialized,
+        user: currentUser,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get auth status" });
+    }
+  });
+
+  app.post("/api/auth/setup", async (req, res) => {
+    try {
+      const isInitialized = await storage.isInitialized();
+      if (isInitialized) {
+        return res.status(400).json({ error: "System already initialized" });
+      }
+
+      const setupData = setupRequestSchema.parse(req.body);
+      const manager = await storage.setupInitialManager(setupData);
+      
+      res.status(201).json(manager);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid setup data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to setup manager" });
+      }
+    }
+  });
+
+  app.post("/api/auth/login/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await storage.setCurrentUser(userId);
+      const currentUser = await storage.getCurrentUser();
+      
+      if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(currentUser);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
   // Player routes
   app.get("/api/players", async (req, res) => {
     try {

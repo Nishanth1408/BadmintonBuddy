@@ -1,6 +1,12 @@
-import { players, matches, type Player, type InsertPlayer, type Match, type InsertMatch, type PlayerStats } from "@shared/schema";
+import { players, matches, type Player, type InsertPlayer, type Match, type InsertMatch, type PlayerStats, type AuthUser, type SetupRequest } from "@shared/schema";
 
 export interface IStorage {
+  // Authentication and Setup
+  isInitialized(): Promise<boolean>;
+  setupInitialManager(setup: SetupRequest): Promise<AuthUser>;
+  getCurrentUser(): Promise<AuthUser | null>;
+  setCurrentUser(userId: number): Promise<void>;
+  
   // Player management
   getPlayer(id: number): Promise<Player | undefined>;
   getAllPlayers(): Promise<Player[]>;
@@ -22,12 +28,60 @@ export class MemStorage implements IStorage {
   private matches: Map<number, Match>;
   private currentPlayerId: number;
   private currentMatchId: number;
+  private currentUser: AuthUser | null;
+  private initialized: boolean;
 
   constructor() {
     this.players = new Map();
     this.matches = new Map();
     this.currentPlayerId = 1;
     this.currentMatchId = 1;
+    this.currentUser = null;
+    this.initialized = false;
+  }
+
+  // Authentication and Setup
+  async isInitialized(): Promise<boolean> {
+    return this.initialized;
+  }
+
+  async setupInitialManager(setup: SetupRequest): Promise<AuthUser> {
+    const manager: Player = {
+      id: this.currentPlayerId++,
+      name: setup.managerName,
+      skillLevel: setup.managerSkillLevel,
+      role: "manager",
+      isActive: true,
+    };
+    
+    this.players.set(manager.id, manager);
+    this.initialized = true;
+    
+    const authUser: AuthUser = {
+      id: manager.id,
+      name: manager.name,
+      role: manager.role,
+      skillLevel: manager.skillLevel,
+    };
+    
+    this.currentUser = authUser;
+    return authUser;
+  }
+
+  async getCurrentUser(): Promise<AuthUser | null> {
+    return this.currentUser;
+  }
+
+  async setCurrentUser(userId: number): Promise<void> {
+    const player = this.players.get(userId);
+    if (player) {
+      this.currentUser = {
+        id: player.id,
+        name: player.name,
+        role: player.role,
+        skillLevel: player.skillLevel,
+      };
+    }
   }
 
   // Player management
@@ -41,7 +95,11 @@ export class MemStorage implements IStorage {
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
-    const player: Player = { ...insertPlayer, id };
+    const player: Player = { 
+      ...insertPlayer, 
+      id,
+      isActive: true,
+    };
     this.players.set(id, player);
     return player;
   }
@@ -185,6 +243,7 @@ export class MemStorage implements IStorage {
 
       return {
         ...stats,
+        role: player.role,
         suggestedSkillLevel,
         suggestion,
         suggestionReason,

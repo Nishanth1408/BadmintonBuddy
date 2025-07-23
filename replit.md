@@ -20,6 +20,13 @@ Preferred communication style: Simple, everyday language.
   - Skill level dropdown now shows "1 - Beginner", "5 - Intermediate", "9 - Advanced" format
   - Balance analysis uses ≤2 skill point difference threshold
   - Filter options updated to use skill ranges: "Beginner (1-3)", "Intermediate (4-7)", "Advanced (8-10)"
+- **Role-Based Access Control System** (Latest - January 2025):
+  - Added Manager and Player role distinction with different permissions
+  - Initial setup flow for creating the first manager account
+  - Login system allowing users to select their profile
+  - Manager permissions: Create, edit, delete players; assign roles to new players
+  - Player permissions: View-only access to players, can still record matches and view statistics
+  - Performance-based skill level suggestions with detailed reasoning after 3+ matches
 
 ## System Architecture
 
