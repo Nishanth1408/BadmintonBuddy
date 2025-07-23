@@ -49,6 +49,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
       onSetupComplete(manager);
     },
     onError: (error: any) => {
+      console.error("Setup error:", error);
       toast({
         title: "Setup failed",
         description: error.message || "Failed to setup manager account",

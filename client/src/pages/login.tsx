@@ -32,6 +32,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       onLogin(user);
     },
     onError: (error: any) => {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Failed to login",
