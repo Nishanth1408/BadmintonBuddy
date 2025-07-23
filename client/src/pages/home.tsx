@@ -411,14 +411,35 @@ export default function Home({ currentUser }: HomeProps) {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
                 {pairs
                   .sort((a, b) => b.skillScore - a.skillScore)
                   .map((pair, index) => (
                   <Card key={index}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-900">Team {index + 1}</h3>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <span className="text-sm font-medium text-gray-500 w-16">Team {index + 1}</span>
+                          
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
+                              {getPlayerInitials(pair.player1.name)}
+                            </div>
+                            <span className="font-medium text-gray-900">{pair.player1.name}</span>
+                            <span className="text-sm text-gray-500">(L{pair.player1.skillLevel})</span>
+                          </div>
+                          
+                          <span className="text-gray-400">+</span>
+                          
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
+                              {getPlayerInitials(pair.player2.name)}
+                            </div>
+                            <span className="font-medium text-gray-900">{pair.player2.name}</span>
+                            <span className="text-sm text-gray-500">(L{pair.player2.skillLevel})</span>
+                          </div>
+                        </div>
+                        
                         <div className="flex items-center space-x-2">
                           <Badge
                             variant={pair.balanceLevel === "Balanced" ? "default" : "secondary"}
@@ -427,49 +448,9 @@ export default function Home({ currentUser }: HomeProps) {
                             {pair.balanceLevel}
                           </Badge>
                           <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                            Skill Score: {pair.skillScore}
+                            Score: {pair.skillScore}
                           </Badge>
                         </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
-                            {getPlayerInitials(pair.player1.name)}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{pair.player1.name}</div>
-                            <div className="text-sm text-gray-500">Level {pair.player1.skillLevel}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
-                            {getPlayerInitials(pair.player2.name)}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{pair.player2.name}</div>
-                            <div className="text-sm text-gray-500">Level {pair.player2.skillLevel}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <Dialog open={matchFormOpen} onOpenChange={setMatchFormOpen}>
-                          <DialogTrigger asChild>
-                            <Button className="w-full bg-green-600 hover:bg-green-700">
-                              <PlayCircle className="h-4 w-4 mr-2" />
-                              Start Match
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Record New Match</DialogTitle>
-                            </DialogHeader>
-                            <MatchForm
-                              preselectedTeamA={[pair.player1.id, pair.player2.id]}
-                              onSuccess={() => setMatchFormOpen(false)}
-                              availableTeams={allPairs}
-                            />
-                          </DialogContent>
-                        </Dialog>
                       </div>
                     </CardContent>
                   </Card>
