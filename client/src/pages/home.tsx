@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,15 +16,48 @@ import type { Player, Match, PlayerStats, DoublesTeam, TeamStats, StatsResponse,
 
 interface HomeProps {
   currentUser: AuthUser | null;
+  activeTab?: string;
 }
 
-export default function Home({ currentUser }: HomeProps) {
-  const [activeTab, setActiveTab] = useState("players");
+export default function Home({ currentUser, activeTab: initialTab = "players" }: HomeProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [playerFormOpen, setPlayerFormOpen] = useState(false);
   const [matchFormOpen, setMatchFormOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [skillFilter, setSkillFilter] = useState("All Skill Levels");
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Update active tab when location changes
+  useEffect(() => {
+    const pathToTab: Record<string, string> = {
+      '/': 'players',
+      '/players': 'players',
+      '/matches': 'matches',
+      '/stats': 'stats',
+      '/pairs': 'pairs'
+    };
+    
+    const newTab = pathToTab[location] || 'players';
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [location, activeTab]);
+
+  // Handle tab changes and update URL
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const tabToPath: Record<string, string> = {
+      'players': '/players',
+      'matches': '/matches', 
+      'stats': '/stats',
+      'pairs': '/pairs'
+    };
+    const newPath = tabToPath[value] || '/players';
+    if (location !== newPath) {
+      setLocation(newPath);
+    }
+  };
 
   // Queries
   const { data: players = [], isLoading: playersLoading } = useQuery<Player[]>({
@@ -144,7 +178,7 @@ export default function Home({ currentUser }: HomeProps) {
     <div>
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-4 w-full h-16 bg-transparent rounded-none">
             <TabsTrigger value="players" className="flex-col gap-1 h-full data-[state=active]:text-blue-600">
               <Users className="h-5 w-5" />
@@ -167,7 +201,7 @@ export default function Home({ currentUser }: HomeProps) {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           {/* Players Tab */}
           <TabsContent value="players">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">

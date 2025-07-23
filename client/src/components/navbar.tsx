@@ -87,7 +87,6 @@ export default function Navbar({ currentUser, onLogin, onLogout }: NavbarProps) 
   };
 
   const navItems = [
-    { path: "/", label: "Home", public: true },
     { path: "/players", label: "Players", public: true },
     { path: "/matches", label: "Matches", public: true },
     { path: "/stats", label: "Statistics", public: true },
