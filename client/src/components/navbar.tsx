@@ -10,9 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Settings, Crown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { User, LogOut, Settings, Crown, AlertTriangle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { AuthUser } from "@shared/schema";
 
@@ -47,8 +48,33 @@ export default function Navbar({ currentUser, onLogin, onLogout }: NavbarProps) 
     },
   });
 
+  const resetDataMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/reset-data");
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Data reset successful",
+        description: "All players, matches, and statistics have been deleted."
+      });
+      queryClient.invalidateQueries();
+    },
+    onError: () => {
+      toast({
+        title: "Reset failed",
+        description: "There was an error resetting the data.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleResetData = () => {
+    resetDataMutation.mutate();
   };
 
   const getInitials = (name: string) => {
@@ -131,6 +157,48 @@ export default function Navbar({ currentUser, onLogin, onLogout }: NavbarProps) 
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+                  {currentUser?.role === "manager" && (
+                    <>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            <span>Reset All Data</span>
+                          </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reset All Data</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="text-center">
+                              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">Are you sure?</h3>
+                              <p className="text-gray-600 mb-4">
+                                This will permanently delete all players, matches, and statistics. This action cannot be undone.
+                              </p>
+                            </div>
+                            <div className="flex space-x-3">
+                              <DialogTrigger asChild>
+                                <Button variant="outline" className="flex-1">
+                                  Cancel
+                                </Button>
+                              </DialogTrigger>
+                              <Button
+                                variant="destructive"
+                                className="flex-1"
+                                onClick={handleResetData}
+                                disabled={resetDataMutation.isPending}
+                              >
+                                {resetDataMutation.isPending ? "Resetting..." : "Reset All Data"}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{logoutMutation.isPending ? "Logging out..." : "Log out"}</span>
