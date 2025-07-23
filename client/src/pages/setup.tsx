@@ -16,6 +16,7 @@ import { Users, Shield } from "lucide-react";
 const setupSchema = z.object({
   managerName: z.string().min(1, "Manager name is required"),
   managerSkillLevel: z.number().min(1).max(10),
+  managerMobile: z.string().min(10).max(15).regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number format"),
 });
 
 type SetupForm = z.infer<typeof setupSchema>;
@@ -32,6 +33,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
     defaultValues: {
       managerName: "",
       managerSkillLevel: 5,
+      managerMobile: "",
     },
   });
 
@@ -137,6 +139,24 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
                           ))}
                         </SelectContent>
                       </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="managerMobile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mobile Number</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter mobile number (e.g. +91xxxxxxxxxx)" 
+                        {...field}
+                        disabled={setupMutation.isPending}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -24,6 +24,7 @@ export default function PlayerForm({ player, currentUser, onSuccess }: PlayerFor
       name: player?.name || "",
       skillLevel: player?.skillLevel || 1,
       role: player?.role || "player",
+      mobileNumber: player?.mobileNumber || "",
     },
   });
 
@@ -114,6 +115,23 @@ export default function PlayerForm({ player, currentUser, onSuccess }: PlayerFor
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="mobileNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mobile Number</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter mobile number (e.g. +91xxxxxxxxxx)" 
+                  {...field} 
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

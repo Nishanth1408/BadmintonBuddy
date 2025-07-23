@@ -1,6 +1,7 @@
-import { players, matches, type Player, type InsertPlayer, type Match, type InsertMatch, type PlayerStats, type AuthUser, type SetupRequest } from "@shared/schema";
+import { players, matches, otpCodes, type Player, type InsertPlayer, type Match, type InsertMatch, type PlayerStats, type AuthUser, type SetupRequest } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
+import { smsService } from "./sms-service";
 
 export interface IStorage {
   // Authentication and Setup
@@ -26,6 +27,10 @@ export interface IStorage {
   
   // Data management
   resetAllData(): Promise<void>;
+  
+  // OTP management
+  sendOTP(playerId: number): Promise<boolean>;
+  verifyOTP(playerId: number, code: string): Promise<boolean>;
 }
 
 // Database Storage Implementation
@@ -45,6 +50,7 @@ export class DatabaseStorage implements IStorage {
         name: setup.managerName,
         skillLevel: setup.managerSkillLevel,
         role: "manager",
+        mobileNumber: setup.managerMobile,
         isActive: true,
       })
       .returning();
@@ -92,6 +98,7 @@ export class DatabaseStorage implements IStorage {
         name: player.name,
         skillLevel: player.skillLevel,
         role: player.role || "player",
+        mobileNumber: player.mobileNumber,
         isActive: true,
       })
       .returning();
@@ -112,7 +119,7 @@ export class DatabaseStorage implements IStorage {
       .update(players)
       .set({ isActive: false })
       .where(eq(players.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getMatch(id: number): Promise<Match | undefined> {
@@ -199,9 +206,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resetAllData(): Promise<void> {
+    await db.delete(otpCodes);
     await db.delete(matches);
     await db.delete(players);
     this.currentUser = null;
+  }
+
+  async sendOTP(playerId: number): Promise<boolean> {
+    try {
+      // Get player's mobile number
+      const [player] = await db.select().from(players).where(eq(players.id, playerId));
+      if (!player) {
+        return false;
+      }
+
+      // Generate OTP
+      const code = smsService.generateOTP();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      // Save OTP to database
+      await db.insert(otpCodes).values({
+        playerId,
+        code,
+        expiresAt,
+        isUsed: false,
+      });
+
+      // Send SMS
+      const sent = await smsService.sendOTP(player.mobileNumber, code);
+      return sent;
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+      return false;
+    }
+  }
+
+  async verifyOTP(playerId: number, code: string): Promise<boolean> {
+    try {
+      // Find valid OTP
+      const [otpRecord] = await db
+        .select()
+        .from(otpCodes)
+        .where(
+          and(
+            eq(otpCodes.playerId, playerId),
+            eq(otpCodes.code, code),
+            eq(otpCodes.isUsed, false),
+            gt(otpCodes.expiresAt, new Date())
+          )
+        );
+
+      if (!otpRecord) {
+        return false;
+      }
+
+      // Mark OTP as used
+      await db
+        .update(otpCodes)
+        .set({ isUsed: true })
+        .where(eq(otpCodes.id, otpRecord.id));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to verify OTP:', error);
+      return false;
+    }
   }
 }
 

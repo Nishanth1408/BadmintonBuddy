@@ -8,6 +8,7 @@ export const players = pgTable("players", {
   name: text("name").notNull(),
   skillLevel: integer("skill_level").notNull(), // 1-10 scale
   role: text("role", { enum: ["manager", "player"] }).notNull().default("player"),
+  mobileNumber: text("mobile_number").notNull(),
   isActive: boolean("is_active").notNull().default(true),
 });
 
@@ -23,13 +24,24 @@ export const matches = pgTable("matches", {
   playedAt: timestamp("played_at").defaultNow().notNull(),
 });
 
+export const otpCodes = pgTable("otp_codes", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
   skillLevel: true,
   role: true,
+  mobileNumber: true,
 }).extend({
   skillLevel: z.number().min(1).max(10),
   role: z.enum(["manager", "player"]).default("player"),
+  mobileNumber: z.string().min(10).max(15).regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number format"),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).pick({
@@ -75,7 +87,26 @@ export interface AuthUser {
 export interface SetupRequest {
   managerName: string;
   managerSkillLevel: number;
+  managerMobile: string;
 }
+
+export interface OtpRequest {
+  playerId: number;
+}
+
+export interface OtpVerify {
+  playerId: number;
+  code: string;
+}
+
+export const otpRequestSchema = z.object({
+  playerId: z.number(),
+});
+
+export const otpVerifySchema = z.object({
+  playerId: z.number(),
+  code: z.string().length(6),
+});
 
 export interface TeamStats {
   player1: Player;

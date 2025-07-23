@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { User, Crown, Users } from "lucide-react";
+import { User, Crown, Users, Smartphone } from "lucide-react";
+import OTPVerification from "@/components/otp-verification";
 import type { Player, AuthUser } from "@shared/schema";
 
 interface LoginPageProps {
@@ -14,35 +15,52 @@ interface LoginPageProps {
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const { toast } = useToast();
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
   
   const { data: players, isLoading } = useQuery({
     queryKey: ["/api/players"],
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await apiRequest("POST", `/api/auth/login/${userId}`);
+  const sendOTPMutation = useMutation({
+    mutationFn: async (playerId: number) => {
+      const response = await apiRequest("POST", "/api/auth/send-otp", { playerId });
       return await response.json();
     },
-    onSuccess: (user) => {
-      toast({
-        title: "Welcome back!",
-        description: `Logged in as ${user.name}`,
-      });
-      onLogin(user);
+    onSuccess: (_, playerId) => {
+      const player = (players as Player[])?.find((p: Player) => p.id === playerId);
+      if (player) {
+        setSelectedPlayer(player);
+        setShowOTPVerification(true);
+        toast({
+          title: "OTP sent",
+          description: `Verification code sent to ${player.mobileNumber}`,
+        });
+      }
     },
     onError: (error: any) => {
-      console.error("Login error:", error);
+      console.error("Send OTP error:", error);
       toast({
-        title: "Login failed",
-        description: error.message || "Failed to login",
+        title: "Failed to send OTP",
+        description: error.message || "Failed to send verification code",
         variant: "destructive",
       });
     },
   });
 
   const handleLogin = (playerId: number) => {
-    loginMutation.mutate(playerId);
+    sendOTPMutation.mutate(playerId);
+  };
+
+  const handleOTPVerificationSuccess = (user: AuthUser) => {
+    setShowOTPVerification(false);
+    setSelectedPlayer(null);
+    onLogin(user);
+  };
+
+  const handleGoBackToLogin = () => {
+    setShowOTPVerification(false);
+    setSelectedPlayer(null);
   };
 
   const getSkillLevelLabel = (level: number) => {
@@ -70,6 +88,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     );
   }
 
+  // Show OTP verification if a player is selected
+  if (showOTPVerification && selectedPlayer) {
+    return (
+      <OTPVerification
+        player={selectedPlayer}
+        onVerificationSuccess={handleOTPVerificationSuccess}
+        onGoBack={handleGoBackToLogin}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
@@ -86,13 +115,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {players?.map((player: Player) => (
+            {(players as Player[])?.map((player: Player) => (
               <Button
                 key={player.id}
                 variant="outline"
                 className="h-auto p-4 justify-start"
                 onClick={() => handleLogin(player.id)}
-                disabled={loginMutation.isPending}
+                disabled={sendOTPMutation.isPending}
               >
                 <div className="flex items-center space-x-3 w-full">
                   <div className="flex-shrink-0">
@@ -118,7 +147,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             ))}
           </div>
           
-          {(!players || players.length === 0) && (
+          {(!players || (players as Player[]).length === 0) && (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No players found. Please contact your manager.</p>

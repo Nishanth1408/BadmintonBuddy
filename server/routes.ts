@@ -1,12 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlayerSchema, insertMatchSchema, type Player, type DoublesTeam, type SetupRequest, type AuthUser } from "@shared/schema";
+import { insertPlayerSchema, insertMatchSchema, otpRequestSchema, otpVerifySchema, type Player, type DoublesTeam, type SetupRequest, type AuthUser } from "@shared/schema";
 import { z } from "zod";
 
 const setupRequestSchema = z.object({
   managerName: z.string().min(1),
   managerSkillLevel: z.number().min(1).max(10),
+  managerMobile: z.string().min(10).max(15).regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number format"),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -45,6 +46,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send OTP for login
+  app.post("/api/auth/send-otp", async (req, res) => {
+    try {
+      const { playerId } = otpRequestSchema.parse(req.body);
+      const sent = await storage.sendOTP(playerId);
+      
+      if (!sent) {
+        return res.status(500).json({ error: "Failed to send OTP" });
+      }
+      
+      res.json({ message: "OTP sent successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid request data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to send OTP" });
+      }
+    }
+  });
+
+  // Verify OTP and login
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { playerId, code } = otpVerifySchema.parse(req.body);
+      const isValid = await storage.verifyOTP(playerId, code);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid or expired OTP" });
+      }
+      
+      // Login the user after successful OTP verification
+      await storage.setCurrentUser(playerId);
+      const currentUser = await storage.getCurrentUser();
+      
+      if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(currentUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid request data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to verify OTP" });
+      }
+    }
+  });
+
+  // Legacy login endpoint (kept for compatibility)
   app.post("/api/auth/login/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
