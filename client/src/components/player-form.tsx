@@ -30,7 +30,8 @@ export default function PlayerForm({ player, currentUser, onSuccess }: PlayerFor
   const createPlayerMutation = useMutation({
     mutationFn: async (data: InsertPlayer) => {
       console.log("Sending POST request with data:", data);
-      return apiRequest("POST", "/api/players", data);
+      const response = await apiRequest("POST", "/api/players", data);
+      return await response.json();
     },
     onSuccess: (result) => {
       console.log("Player created successfully:", result);
@@ -48,7 +49,8 @@ export default function PlayerForm({ player, currentUser, onSuccess }: PlayerFor
 
   const updatePlayerMutation = useMutation({
     mutationFn: async (data: InsertPlayer) => {
-      return apiRequest("PUT", `/api/players/${player!.id}`, data);
+      const response = await apiRequest("PUT", `/api/players/${player!.id}`, data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });

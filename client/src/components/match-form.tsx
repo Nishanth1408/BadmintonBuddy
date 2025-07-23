@@ -42,7 +42,8 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
 
   const createMatchMutation = useMutation({
     mutationFn: async (data: InsertMatch) => {
-      return apiRequest("POST", "/api/matches", data);
+      const response = await apiRequest("POST", "/api/matches", data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
