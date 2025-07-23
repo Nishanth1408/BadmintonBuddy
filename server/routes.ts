@@ -14,11 +14,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/status", async (req, res) => {
     try {
       const isInitialized = await storage.isInitialized();
-      const currentUser = await storage.getCurrentUser();
+      // Don't return current user from server storage - each session manages its own
       
       res.json({
         initialized: isInitialized,
-        user: currentUser,
+        user: null, // Each browser session should select their own user
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get auth status" });

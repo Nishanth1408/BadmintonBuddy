@@ -56,7 +56,7 @@ export class DatabaseStorage implements IStorage {
       skillLevel: manager.skillLevel,
     };
 
-    this.currentUser = authUser;
+    // Don't automatically set current user - let each session choose
     return authUser;
   }
 
