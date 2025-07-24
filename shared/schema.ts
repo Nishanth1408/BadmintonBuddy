@@ -7,6 +7,7 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   skillLevel: integer("skill_level").notNull(), // 1-10 scale
+  originalSkillLevel: integer("original_skill_level"), // Track original level before auto-adjustments
   previousSkillLevel: integer("previous_skill_level"), // Track previous level for change indicators
   role: text("role", { enum: ["manager", "player"] }).notNull().default("player"),
   mobileNumber: text("mobile_number").notNull(),

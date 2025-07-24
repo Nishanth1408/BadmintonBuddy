@@ -110,6 +110,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         name: player.name,
         skillLevel: player.skillLevel,
+        originalSkillLevel: player.skillLevel, // Store original skill level
         role: player.role || "player",
         mobileNumber: player.mobileNumber,
         isActive: true,
@@ -167,8 +168,8 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Match not found");
     }
 
-    // Recalculate skill levels for all players after match update
-    await this.checkForSkillLevelUpdates();
+    // Reset all skill levels and recalculate from scratch
+    await this.recalculateAllSkillLevels();
 
     return updatedMatch;
   }
@@ -179,8 +180,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(matches.id, id));
 
     if (result.rowCount && result.rowCount > 0) {
-      // Recalculate skill levels for all players after deletion
-      await this.checkForSkillLevelUpdates();
+      // Reset all skill levels and recalculate from scratch
+      await this.recalculateAllSkillLevels();
       return true;
     }
     return false;
@@ -449,6 +450,35 @@ export class DatabaseStorage implements IStorage {
         await this.updatePlayerSkillLevel(player.id, newSkillLevel);
       }
     }
+  }
+
+  async recalculateAllSkillLevels(): Promise<void> {
+    const allPlayers = await this.getAllPlayers();
+    
+    // First, ensure all existing players have originalSkillLevel set
+    for (const player of allPlayers) {
+      if (player.originalSkillLevel === null || player.originalSkillLevel === undefined) {
+        await db
+          .update(players)
+          .set({ originalSkillLevel: player.skillLevel })
+          .where(eq(players.id, player.id));
+      }
+    }
+    
+    // Reset all players to their original skill levels (before any auto-adjustments)
+    for (const player of allPlayers) {
+      await db
+        .update(players)
+        .set({
+          skillLevel: player.originalSkillLevel || player.skillLevel,
+          previousSkillLevel: null,
+          lastSkillUpdate: null,
+        })
+        .where(eq(players.id, player.id));
+    }
+    
+    // Now recalculate skill levels based on current match history
+    await this.checkForSkillLevelUpdates();
   }
 
   async resetAllData(): Promise<void> {
