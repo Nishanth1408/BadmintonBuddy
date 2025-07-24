@@ -369,6 +369,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reset all data (Manager only)
+  app.post("/api/reset-data", async (req, res) => {
+    try {
+      await storage.resetAllData();
+      res.json({ message: "All data has been reset successfully" });
+    } catch (error) {
+      console.error("Reset data error:", error);
+      res.status(500).json({ error: "Failed to reset data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

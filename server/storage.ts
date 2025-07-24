@@ -70,7 +70,12 @@ export class DatabaseStorage implements IStorage {
     return this.currentUser;
   }
 
-  async setCurrentUser(userId: number): Promise<void> {
+  async setCurrentUser(userId: number | null): Promise<void> {
+    if (userId === null) {
+      this.currentUser = null;
+      return;
+    }
+    
     const [user] = await db.select().from(players).where(eq(players.id, userId));
     if (user) {
       this.currentUser = {
@@ -79,6 +84,8 @@ export class DatabaseStorage implements IStorage {
         role: user.role as "manager" | "player",
         skillLevel: user.skillLevel,
       };
+    } else {
+      this.currentUser = null;
     }
   }
 
