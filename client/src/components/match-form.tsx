@@ -64,10 +64,21 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
   });
 
   const onSubmit = (data: InsertMatch) => {
-    // Validate that all players are different
+    // Validate that all players are selected and different
     const playerIds = [data.teamAPlayer1Id, data.teamAPlayer2Id, data.teamBPlayer1Id, data.teamBPlayer2Id];
-    const uniquePlayerIds = new Set(playerIds);
     
+    // Check if all players are selected (non-zero)
+    if (playerIds.some(id => !id || id === 0)) {
+      toast({ 
+        title: "Incomplete team selection", 
+        description: "Please select all four players",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Check if all players are different
+    const uniquePlayerIds = new Set(playerIds);
     if (uniquePlayerIds.size !== 4) {
       toast({ 
         title: "Invalid team selection", 
