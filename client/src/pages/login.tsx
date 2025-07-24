@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,7 @@ interface LoginPageProps {
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const { toast } = useToast();
+  const [playerName, setPlayerName] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   
@@ -48,8 +51,30 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     },
   });
 
-  const handleLogin = (playerId: number) => {
-    sendOTPMutation.mutate(playerId);
+  const handleSubmitName = () => {
+    if (!playerName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const player = (players as Player[])?.find((p: Player) => 
+      p.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+    );
+
+    if (!player) {
+      toast({
+        title: "Player not found",
+        description: "No player found with that name. Please check your spelling or contact your manager.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendOTPMutation.mutate(player.id);
   };
 
   const handleOTPVerificationSuccess = (user: AuthUser) => {
@@ -101,63 +126,57 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <div className="bg-blue-100 p-3 rounded-full">
-              <Users className="h-8 w-8 text-blue-600" />
+              <User className="h-8 w-8 text-blue-600" />
             </div>
           </div>
           <CardTitle className="text-2xl">Welcome to Kanteeravas Badminton Club</CardTitle>
           <CardDescription>
-            Select your profile to receive SMS verification code
+            Enter your name to receive SMS verification code
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(players as Player[])?.map((player: Player) => (
-              <Button
-                key={player.id}
-                variant="outline"
-                className="h-auto p-4 justify-start"
-                onClick={() => handleLogin(player.id)}
-                disabled={sendOTPMutation.isPending}
-              >
-                <div className="flex items-center space-x-3 w-full">
-                  <div className="flex-shrink-0">
-                    {player.role === "manager" ? (
-                      <Crown className="h-8 w-8 text-yellow-500" />
-                    ) : (
-                      <User className="h-8 w-8 text-blue-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-gray-900">{player.name}</div>
-                    <div className="text-sm text-gray-600 mt-1">{player.mobileNumber}</div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant={player.role === "manager" ? "default" : "secondary"} className="text-xs">
-                        {player.role === "manager" ? "Manager" : "Player"}
-                      </Badge>
-                      <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
-                        {getSkillLevelLabel(player.skillLevel)}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <div className="text-xs text-blue-600 font-medium">
-                      <Smartphone className="h-3 w-3 inline mr-1" />
-                      SMS Login
-                    </div>
-                  </div>
-                </div>
-              </Button>
-            ))}
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="playerName">Your Name</Label>
+            <Input
+              id="playerName"
+              type="text"
+              placeholder="Enter your full name"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSubmitName();
+                }
+              }}
+            />
           </div>
           
+          <Button 
+            onClick={handleSubmitName}
+            disabled={sendOTPMutation.isPending || !playerName.trim()}
+            className="w-full"
+          >
+            {sendOTPMutation.isPending ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Sending OTP...
+              </>
+            ) : (
+              <>
+                <Smartphone className="h-4 w-4 mr-2" />
+                Continue with SMS
+              </>
+            )}
+          </Button>
+          
           {(!players || (players as Player[]).length === 0) && (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No players found. Please contact your manager.</p>
+            <div className="text-center py-4">
+              <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600">No players found. Please contact your manager.</p>
             </div>
           )}
         </CardContent>
