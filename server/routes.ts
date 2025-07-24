@@ -412,6 +412,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update skill levels based on recent performance (Manager only)
+  app.post("/api/skill-levels/update", async (req, res) => {
+    try {
+      await storage.checkForSkillLevelUpdates();
+      res.json({ message: "Skill levels updated successfully" });
+    } catch (error) {
+      console.error("Skill level update error:", error);
+      res.status(500).json({ error: "Failed to update skill levels" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

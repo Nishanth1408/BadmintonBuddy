@@ -279,9 +279,31 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                               <h3 className="font-semibold text-gray-900">{player.name}</h3>
                               <div className="flex items-center space-x-2">
                                 <span className="text-sm text-gray-600">Skill Level:</span>
-                                <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
-                                  {getSkillLevelLabel(player.skillLevel)}
-                                </Badge>
+                                <div className="flex items-center space-x-1">
+                                  <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
+                                    {getSkillLevelLabel(player.skillLevel)}
+                                  </Badge>
+                                  {stats?.skillLevelChange === "increased" && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
+                                      ↗️
+                                    </Badge>
+                                  )}
+                                  {stats?.skillLevelChange === "decreased" && (
+                                    <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs px-1">
+                                      ↘️
+                                    </Badge>
+                                  )}
+                                  {stats?.recentPerformance === "improving" && stats?.skillLevelChange !== "increased" && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1">
+                                      📈
+                                    </Badge>
+                                  )}
+                                  {stats?.recentPerformance === "declining" && stats?.skillLevelChange !== "decreased" && (
+                                    <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs px-1">
+                                      📉
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -687,7 +709,29 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                               </div>
                               <div>
                                 <h4 className="font-semibold text-gray-900">{playerStat.name}</h4>
-                                <p className="text-sm text-gray-500">Level {playerStat.skillLevel}</p>
+                                <div className="flex items-center space-x-2">
+                                  <p className="text-sm text-gray-500">Level {playerStat.skillLevel}</p>
+                                  {playerStat.skillLevelChange === "increased" && (
+                                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
+                                      ↗️ +{playerStat.skillLevel - (playerStat.previousSkillLevel || 0)}
+                                    </Badge>
+                                  )}
+                                  {playerStat.skillLevelChange === "decreased" && (
+                                    <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs px-1">
+                                      ↘️ -{(playerStat.previousSkillLevel || 0) - playerStat.skillLevel}
+                                    </Badge>
+                                  )}
+                                  {playerStat.recentPerformance === "improving" && playerStat.skillLevelChange !== "increased" && (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1">
+                                      📈 Hot
+                                    </Badge>
+                                  )}
+                                  {playerStat.recentPerformance === "declining" && playerStat.skillLevelChange !== "decreased" && (
+                                    <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs px-1">
+                                      📉 Cold
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center space-x-6">

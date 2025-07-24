@@ -7,9 +7,11 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   skillLevel: integer("skill_level").notNull(), // 1-10 scale
+  previousSkillLevel: integer("previous_skill_level"), // Track previous level for change indicators
   role: text("role", { enum: ["manager", "player"] }).notNull().default("player"),
   mobileNumber: text("mobile_number").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  lastSkillUpdate: timestamp("last_skill_update").defaultNow(),
 });
 
 export const matches = pgTable("matches", {
@@ -67,6 +69,8 @@ export interface PlayerStats {
   playerId: number;
   name: string;
   skillLevel: number;
+  previousSkillLevel?: number;
+  skillLevelChange?: "increased" | "decreased" | "unchanged";
   role: "manager" | "player";
   totalMatches: number;
   wins: number;
@@ -75,6 +79,7 @@ export interface PlayerStats {
   suggestedSkillLevel?: number;
   suggestion?: "increase" | "decrease" | "maintain";
   suggestionReason?: string;
+  recentPerformance?: "improving" | "declining" | "stable";
 }
 
 export interface AuthUser {

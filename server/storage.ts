@@ -22,6 +22,10 @@ export interface IStorage {
   getAllMatches(): Promise<Match[]>;
   createMatch(match: InsertMatch): Promise<Match>;
   
+  // Skill level management
+  updatePlayerSkillLevel(playerId: number, newSkillLevel: number): Promise<void>;
+  checkForSkillLevelUpdates(): Promise<void>;
+  
   // Statistics
   getPlayerStats(playerId?: number): Promise<PlayerStats[]>;
   
@@ -143,6 +147,10 @@ export class DatabaseStorage implements IStorage {
       .insert(matches)
       .values(match)
       .returning();
+    
+    // Auto-update skill levels after each match
+    await this.checkForSkillLevelUpdates();
+    
     return newMatch;
   }
 
@@ -160,9 +168,14 @@ export class DatabaseStorage implements IStorage {
         match.teamAPlayer2Id === player.id ||
         match.teamBPlayer1Id === player.id ||
         match.teamBPlayer2Id === player.id
-      );
+      ).sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
+      
+      // Get last 3 matches for recent performance analysis
+      const recentMatches = playerMatches.slice(0, 3);
       
       let wins = 0;
+      let recentWins = 0;
+      
       for (const match of playerMatches) {
         const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
         const teamWon = match.winnerId === 1 ? "A" : "B";
@@ -171,26 +184,59 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      for (const match of recentMatches) {
+        const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
+        const teamWon = match.winnerId === 1 ? "A" : "B";
+        if ((isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B")) {
+          recentWins++;
+        }
+      }
+      
       const losses = playerMatches.length - wins;
       const winRate = playerMatches.length > 0 ? Math.round((wins / playerMatches.length) * 100) : 0;
+      const recentWinRate = recentMatches.length > 0 ? Math.round((recentWins / recentMatches.length) * 100) : 0;
+      
+      // Calculate skill level change indicator
+      let skillLevelChange: "increased" | "decreased" | "unchanged" | undefined;
+      if (player.previousSkillLevel !== null && player.previousSkillLevel !== undefined) {
+        if (player.skillLevel > player.previousSkillLevel) {
+          skillLevelChange = "increased";
+        } else if (player.skillLevel < player.previousSkillLevel) {
+          skillLevelChange = "decreased";
+        } else {
+          skillLevelChange = "unchanged";
+        }
+      }
+      
+      // Determine recent performance trend
+      let recentPerformance: "improving" | "declining" | "stable" | undefined;
+      if (recentMatches.length >= 3) {
+        if (recentWinRate >= 67) { // 2/3 wins
+          recentPerformance = "improving";
+        } else if (recentWinRate <= 33) { // 1/3 wins or less
+          recentPerformance = "declining";
+        } else {
+          recentPerformance = "stable";
+        }
+      }
       
       let suggestedSkillLevel: number | undefined;
       let suggestion: "increase" | "decrease" | "maintain" | undefined;
       let suggestionReason: string | undefined;
       
-      if (playerMatches.length >= 3) {
-        if (winRate >= 70) {
+      if (recentMatches.length >= 3) {
+        if (recentWinRate >= 67) { // 2 out of 3 recent wins
           suggestedSkillLevel = Math.min(10, player.skillLevel + 1);
           suggestion = "increase";
-          suggestionReason = `High win rate (${winRate}%) suggests skill level could be increased`;
-        } else if (winRate <= 30) {
+          suggestionReason = `Strong recent performance (${recentWins}/${recentMatches.length} wins) suggests skill level increase`;
+        } else if (recentWinRate <= 33) { // 1 out of 3 recent wins or less
           suggestedSkillLevel = Math.max(1, player.skillLevel - 1);
           suggestion = "decrease";
-          suggestionReason = `Low win rate (${winRate}%) suggests skill level could be decreased`;
+          suggestionReason = `Poor recent performance (${recentWins}/${recentMatches.length} wins) suggests skill level decrease`;
         } else {
           suggestedSkillLevel = player.skillLevel;
           suggestion = "maintain";
-          suggestionReason = `Balanced win rate (${winRate}%) indicates appropriate skill level`;
+          suggestionReason = `Balanced recent performance (${recentWins}/${recentMatches.length} wins) indicates appropriate skill level`;
         }
       }
       
@@ -198,6 +244,8 @@ export class DatabaseStorage implements IStorage {
         playerId: player.id,
         name: player.name,
         skillLevel: player.skillLevel,
+        previousSkillLevel: player.previousSkillLevel || undefined,
+        skillLevelChange,
         role: player.role as "manager" | "player",
         totalMatches: playerMatches.length,
         wins,
@@ -206,10 +254,69 @@ export class DatabaseStorage implements IStorage {
         suggestedSkillLevel,
         suggestion,
         suggestionReason,
+        recentPerformance,
       });
     }
     
     return stats;
+  }
+
+  async updatePlayerSkillLevel(playerId: number, newSkillLevel: number): Promise<void> {
+    const player = await this.getPlayer(playerId);
+    if (!player) return;
+    
+    await db
+      .update(players)
+      .set({
+        previousSkillLevel: player.skillLevel,
+        skillLevel: newSkillLevel,
+        lastSkillUpdate: new Date(),
+      })
+      .where(eq(players.id, playerId));
+  }
+
+  async checkForSkillLevelUpdates(): Promise<void> {
+    const allPlayers = await this.getAllPlayers();
+    const allMatches = await this.getAllMatches();
+    
+    for (const player of allPlayers) {
+      const playerMatches = allMatches.filter(match => 
+        match.teamAPlayer1Id === player.id ||
+        match.teamAPlayer2Id === player.id ||
+        match.teamBPlayer1Id === player.id ||
+        match.teamBPlayer2Id === player.id
+      ).sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
+      
+      // Only check if player has played at least 3 matches
+      if (playerMatches.length < 3) continue;
+      
+      // Get last 3 matches
+      const recentMatches = playerMatches.slice(0, 3);
+      let recentWins = 0;
+      
+      for (const match of recentMatches) {
+        const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
+        const teamWon = match.winnerId === 1 ? "A" : "B";
+        if ((isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B")) {
+          recentWins++;
+        }
+      }
+      
+      const recentWinRate = Math.round((recentWins / recentMatches.length) * 100);
+      let newSkillLevel = player.skillLevel;
+      
+      // Auto-update skill level based on recent performance
+      if (recentWinRate >= 67 && player.skillLevel < 10) { // 2+ wins out of 3
+        newSkillLevel = player.skillLevel + 1;
+      } else if (recentWinRate <= 33 && player.skillLevel > 1) { // 1 or 0 wins out of 3
+        newSkillLevel = player.skillLevel - 1;
+      }
+      
+      // Only update if skill level should change
+      if (newSkillLevel !== player.skillLevel) {
+        await this.updatePlayerSkillLevel(player.id, newSkillLevel);
+      }
+    }
   }
 
   async resetAllData(): Promise<void> {
