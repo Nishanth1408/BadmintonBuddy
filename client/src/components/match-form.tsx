@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertMatchSchema, type Player, type InsertMatch, type DoublesTeam } from "@shared/schema";
+import { insertMatchSchema, type Player, type InsertMatch, type DoublesTeam, type Match } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,11 @@ interface MatchFormProps {
   onSuccess: () => void;
   embedded?: boolean;
   availableTeams?: DoublesTeam[];
+  editingMatch?: Match | null;
+  onUpdate?: (data: Partial<Match>) => void;
 }
 
-export default function MatchForm({ preselectedTeamA, onSuccess, embedded = false, availableTeams = [] }: MatchFormProps) {
+export default function MatchForm({ preselectedTeamA, onSuccess, embedded = false, availableTeams = [], editingMatch, onUpdate }: MatchFormProps) {
   const { toast } = useToast();
   const [useTeamMode, setUseTeamMode] = useState(availableTeams.length >= 2);
   const [selectedTeamA, setSelectedTeamA] = useState<DoublesTeam | null>(null);
@@ -30,13 +32,13 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
   const form = useForm<InsertMatch>({
     resolver: zodResolver(insertMatchSchema),
     defaultValues: {
-      teamAPlayer1Id: preselectedTeamA?.[0] || 0,
-      teamAPlayer2Id: preselectedTeamA?.[1] || 0,
-      teamBPlayer1Id: 0,
-      teamBPlayer2Id: 0,
-      teamAScore: 0,
-      teamBScore: 0,
-      winnerId: 1,
+      teamAPlayer1Id: editingMatch?.teamAPlayer1Id || preselectedTeamA?.[0] || 0,
+      teamAPlayer2Id: editingMatch?.teamAPlayer2Id || preselectedTeamA?.[1] || 0,
+      teamBPlayer1Id: editingMatch?.teamBPlayer1Id || 0,
+      teamBPlayer2Id: editingMatch?.teamBPlayer2Id || 0,
+      teamAScore: editingMatch?.teamAScore || 0,
+      teamBScore: editingMatch?.teamBScore || 0,
+      winnerId: editingMatch?.winnerId || 1,
     },
   });
 
@@ -90,7 +92,13 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
 
     // Determine winner based on scores
     const winnerId = data.teamAScore > data.teamBScore ? 1 : 2;
-    createMatchMutation.mutate({ ...data, winnerId });
+    
+    // Handle edit vs create
+    if (editingMatch && onUpdate) {
+      onUpdate({ ...data, winnerId });
+    } else {
+      createMatchMutation.mutate({ ...data, winnerId });
+    }
   };
 
   const watchedValues = form.watch();
@@ -475,7 +483,10 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
               Cancel
             </Button>
             <Button type="submit" disabled={createMatchMutation.isPending}>
-              {createMatchMutation.isPending ? "Recording..." : "Record Match"}
+              {createMatchMutation.isPending ? 
+                (editingMatch ? "Updating..." : "Recording...") : 
+                (editingMatch ? "Update Match" : "Record Match")
+              }
             </Button>
           </div>
         )}
@@ -487,7 +498,10 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
               disabled={createMatchMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
-              {createMatchMutation.isPending ? "Recording..." : "Record Match"}
+              {createMatchMutation.isPending ? 
+                (editingMatch ? "Updating..." : "Recording...") : 
+                (editingMatch ? "Update Match" : "Record Match")
+              }
             </Button>
           </div>
         )}

@@ -308,6 +308,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/matches/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const matchData = insertMatchSchema.partial().parse(req.body);
+      
+      // If updating scores, recalculate winner
+      if (matchData.teamAScore !== undefined && matchData.teamBScore !== undefined) {
+        matchData.winnerId = matchData.teamAScore > matchData.teamBScore ? 1 : 2;
+      }
+      
+      const match = await storage.updateMatch(id, matchData);
+      res.json(match);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid match data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update match" });
+      }
+    }
+  });
+
+  app.delete("/api/matches/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteMatch(id);
+      if (success) {
+        res.json({ message: "Match deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Match not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete match" });
+    }
+  });
+
   // Statistics routes
   app.get("/api/stats", async (req, res) => {
     try {

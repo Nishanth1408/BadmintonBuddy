@@ -21,6 +21,8 @@ export interface IStorage {
   getMatch(id: number): Promise<Match | undefined>;
   getAllMatches(): Promise<Match[]>;
   createMatch(match: InsertMatch): Promise<Match>;
+  updateMatch(id: number, updates: Partial<InsertMatch>): Promise<Match>;
+  deleteMatch(id: number): Promise<boolean>;
   
   // Skill level management
   updatePlayerSkillLevel(playerId: number, newSkillLevel: number): Promise<void>;
@@ -152,6 +154,60 @@ export class DatabaseStorage implements IStorage {
     await this.checkForSkillLevelUpdates();
     
     return newMatch;
+  }
+
+  async updateMatch(id: number, updateData: Partial<InsertMatch>): Promise<Match> {
+    const [updatedMatch] = await db
+      .update(matches)
+      .set(updateData)
+      .where(eq(matches.id, id))
+      .returning();
+
+    if (!updatedMatch) {
+      throw new Error("Match not found");
+    }
+
+    // Recalculate skill levels for all players after match update
+    await this.checkForSkillLevelUpdates();
+
+    return updatedMatch;
+  }
+
+  async deleteMatch(id: number): Promise<boolean> {
+    const result = await db
+      .delete(matches)
+      .where(eq(matches.id, id));
+
+    if (result.rowCount && result.rowCount > 0) {
+      // Recalculate skill levels for all players after deletion
+      await this.checkForSkillLevelUpdates();
+      return true;
+    }
+    return false;
+  }
+
+  async updateMatch(id: number, updates: Partial<InsertMatch>): Promise<Match> {
+    const [updatedMatch] = await db
+      .update(matches)
+      .set(updates)
+      .where(eq(matches.id, id))
+      .returning();
+    
+    // Auto-update skill levels after match modification
+    await this.checkForSkillLevelUpdates();
+    
+    return updatedMatch;
+  }
+
+  async deleteMatch(id: number): Promise<boolean> {
+    const result = await db
+      .delete(matches)
+      .where(eq(matches.id, id));
+    
+    // Auto-update skill levels after match deletion
+    await this.checkForSkillLevelUpdates();
+    
+    return (result.rowCount || 0) > 0;
   }
 
   async getPlayerStats(playerId?: number): Promise<PlayerStats[]> {

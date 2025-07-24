@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Users, UserPlus, Trophy, BarChart3, PlayCircle, Plus, Edit, Trash2, RefreshCw, LogOut, Crown, User, AlertTriangle } from "lucide-react";
@@ -24,6 +25,7 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
   const [playerFormOpen, setPlayerFormOpen] = useState(false);
   const [matchFormOpen, setMatchFormOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [skillFilter, setSkillFilter] = useState("All Skill Levels");
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -111,6 +113,34 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
     },
     onError: () => {
       toast({ title: "Failed to delete player", variant: "destructive" });
+    },
+  });
+
+  // Match editing mutations
+  const updateMatchMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Match> }) => 
+      apiRequest("PUT", `/api/matches/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({ title: "Match updated successfully" });
+      setEditingMatch(null);
+      setMatchFormOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update match", variant: "destructive" });
+    },
+  });
+
+  const deleteMatchMutation = useMutation({
+    mutationFn: async (matchId: number) => apiRequest("DELETE", `/api/matches/${matchId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({ title: "Match deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete match", variant: "destructive" });
     },
   });
 
@@ -489,11 +519,16 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Record New Match</DialogTitle>
+                      <DialogTitle>{editingMatch ? "Edit Match" : "Record New Match"}</DialogTitle>
                     </DialogHeader>
                     <MatchForm 
-                      onSuccess={() => setMatchFormOpen(false)}
+                      onSuccess={() => {
+                        setMatchFormOpen(false);
+                        setEditingMatch(null);
+                      }}
                       availableTeams={allPairs}
+                      editingMatch={editingMatch}
+                      onUpdate={(data) => editingMatch && updateMatchMutation.mutate({ id: editingMatch.id, data })}
                     />
                   </DialogContent>
                 </Dialog>
@@ -587,6 +622,48 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                                   Team {teamAWon ? "A" : "B"} Wins
                                 </div>
                               </div>
+                              {currentUser?.role === "manager" && (
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingMatch(match);
+                                      setMatchFormOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Match</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete this match? This will also update player skill level rankings. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => deleteMatchMutation.mutate(match.id)}
+                                          className="bg-red-600 hover:bg-red-700"
+                                        >
+                                          Delete Match
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
