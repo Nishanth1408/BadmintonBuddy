@@ -35,6 +35,12 @@ Preferred communication style: Simple, everyday language.
   - Implemented DatabaseStorage class with full CRUD operations
   - Added manager-only data reset functionality for cleaning all application data
   - Database migrations handled automatically via `npm run db:push`
+- **Custom Branding & UI Enhancements** (January 2025):
+  - Integrated custom Kanteerava lion logo throughout application
+  - Replaced generic crown icons with authentic club branding
+  - Logo appears in navbar, login page, and setup page at appropriate sizes
+  - Fixed match form validation logic for proper team selection handling
+  - Improved error messaging for incomplete vs duplicate player selections
 
 ## System Architecture
 
