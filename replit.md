@@ -47,6 +47,12 @@ Preferred communication style: Simple, everyday language.
   - Fixed React hooks order violations that were causing application crashes
   - Authentication state now persists across page refreshes and browser sessions
   - Users remain logged in until explicit logout or session expiration
+- **Enhanced Dynamic Skill Level System** (January 2025):
+  - Upgraded skill level calculator to consider opposition team strength in addition to wins/losses
+  - Weighted performance scoring system that rewards beating stronger opponents and penalizes losses to weaker ones
+  - Automatic skill level adjustments based on weighted performance over last 3 matches (threshold: ±0.5)
+  - Enhanced suggestion system provides more intelligent recommendations based on opponent quality
+  - Real-time skill level updates display in Player Management with proper query synchronization
 
 ## System Architecture
 
