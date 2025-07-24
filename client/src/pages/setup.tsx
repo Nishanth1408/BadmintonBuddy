@@ -12,6 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Shield } from "lucide-react";
+import logoPath from "@assets/Kanteerava_logo_1753355959908.jpg";
 
 const setupSchema = z.object({
   managerName: z.string().min(1, "Manager name is required"),
@@ -82,9 +83,11 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Shield className="h-8 w-8 text-blue-600" />
-            </div>
+            <img 
+              src={logoPath} 
+              alt="Kanteeravas Badminton Club Logo" 
+              className="h-16 w-16 object-contain"
+            />
           </div>
           <CardTitle className="text-2xl">Welcome to Kanteeravas Badminton Club</CardTitle>
           <CardDescription>

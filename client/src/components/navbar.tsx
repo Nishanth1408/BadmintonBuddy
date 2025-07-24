@@ -15,6 +15,7 @@ import { User, LogOut, Settings, Crown, AlertTriangle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import logoPath from "@assets/Kanteerava_logo_1753355959908.jpg";
 import type { AuthUser } from "@shared/schema";
 
 interface NavbarProps {
@@ -100,10 +101,12 @@ export default function Navbar({ currentUser, onLogin, onLogout }: NavbarProps) 
           {/* Logo and Navigation */}
           <div className="flex items-center space-x-8">
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="bg-blue-600 text-white p-2 rounded-lg">
-                  <Crown className="h-5 w-5" />
-                </div>
+              <div className="flex items-center space-x-3 cursor-pointer">
+                <img 
+                  src={logoPath} 
+                  alt="Kanteeravas Badminton Club Logo" 
+                  className="h-10 w-10 object-contain"
+                />
                 <span className="font-bold text-lg text-gray-900">
                   Kanteeravas Badminton Club
                 </span>

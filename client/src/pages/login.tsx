@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { User, Crown, Users, Smartphone } from "lucide-react";
 import OTPVerification from "@/components/otp-verification";
+import logoPath from "@assets/Kanteerava_logo_1753355959908.jpg";
 import type { Player, AuthUser } from "@shared/schema";
 
 interface LoginPageProps {
@@ -129,9 +130,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <User className="h-8 w-8 text-blue-600" />
-            </div>
+            <img 
+              src={logoPath} 
+              alt="Kanteeravas Badminton Club Logo" 
+              className="h-16 w-16 object-contain"
+            />
           </div>
           <CardTitle className="text-2xl">Welcome to Kanteeravas Badminton Club</CardTitle>
           <CardDescription>
