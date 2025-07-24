@@ -1,8 +1,15 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlayerSchema, insertMatchSchema, otpRequestSchema, otpVerifySchema, type Player, type DoublesTeam, type SetupRequest, type AuthUser } from "@shared/schema";
 import { z } from "zod";
+
+// Extend Express Request to include session
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
+}
 
 const setupRequestSchema = z.object({
   managerName: z.string().min(1),
@@ -15,11 +22,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/status", async (req, res) => {
     try {
       const isInitialized = await storage.isInitialized();
-      // Don't return current user from server storage - each session manages its own
+      
+      // Check if user is logged in via session
+      let currentUser = null;
+      if (req.session.userId) {
+        const user = await storage.getPlayer(req.session.userId);
+        if (user) {
+          currentUser = {
+            id: user.id,
+            name: user.name,
+            role: user.role as "manager" | "player",
+            skillLevel: user.skillLevel,
+          };
+        }
+      }
       
       res.json({
         initialized: isInitialized,
-        user: null, // Each browser session should select their own user
+        user: currentUser,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get auth status" });
@@ -77,12 +97,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Login the user after successful OTP verification
-      await storage.setCurrentUser(playerId);
-      const currentUser = await storage.getCurrentUser();
+      req.session.userId = playerId;
       
-      if (!currentUser) {
+      const user = await storage.getPlayer(playerId);
+      if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+      
+      const currentUser: AuthUser = {
+        id: user.id,
+        name: user.name,
+        role: user.role as "manager" | "player",
+        skillLevel: user.skillLevel,
+      };
       
       res.json(currentUser);
     } catch (error) {
@@ -105,8 +132,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Logout endpoint
   app.post("/api/auth/logout", async (req, res) => {
     try {
-      await storage.setCurrentUser(null);
-      res.json({ message: "Logged out successfully" });
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ error: "Failed to logout" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logged out successfully" });
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to logout" });
     }

@@ -12,23 +12,45 @@ import Navbar from "@/components/navbar";
 import type { AuthUser } from "@shared/schema";
 
 function AuthWrapper() {
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    // Load user from localStorage on initial load
+    try {
+      const stored = localStorage.getItem('kanteerava_current_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [showLogin, setShowLogin] = useState(false);
   
-  const { data: authStatus, isLoading, refetch } = useQuery({
+  const { data: authStatus, isLoading, refetch } = useQuery<{initialized: boolean, user: AuthUser | null}>({
     queryKey: ["/api/auth/status"],
     staleTime: 0,
     refetchOnMount: "always",
   });
 
+  // Sync localStorage with server session - must be before any early returns
+  useEffect(() => {
+    if (authStatus?.user && (!currentUser || currentUser.id !== authStatus.user.id)) {
+      setCurrentUser(authStatus.user);
+      localStorage.setItem('kanteerava_current_user', JSON.stringify(authStatus.user));
+    } else if (!authStatus?.user && currentUser) {
+      // Server session is gone, clear localStorage
+      setCurrentUser(null);
+      localStorage.removeItem('kanteerava_current_user');
+    }
+  }, [authStatus?.user]);
+
   const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
+    localStorage.setItem('kanteerava_current_user', JSON.stringify(user));
     setShowLogin(false);
     refetch();
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    localStorage.removeItem('kanteerava_current_user');
     refetch();
   };
 
@@ -53,6 +75,7 @@ function AuthWrapper() {
       <SetupPage 
         onSetupComplete={(user: AuthUser) => {
           setCurrentUser(user);
+          localStorage.setItem('kanteerava_current_user', JSON.stringify(user));
           queryClient.invalidateQueries({ queryKey: ["/api/auth/status"] });
         }} 
       />
@@ -64,7 +87,8 @@ function AuthWrapper() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  const user = currentUser || authStatus?.user;
+  // Prioritize server session over localStorage
+  const user = authStatus?.user || currentUser;
 
   // Show main app with navbar (public access)
   return (
