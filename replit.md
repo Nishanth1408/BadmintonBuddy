@@ -41,6 +41,12 @@ Preferred communication style: Simple, everyday language.
   - Logo appears in navbar, login page, and setup page at appropriate sizes
   - Fixed match form validation logic for proper team selection handling
   - Improved error messaging for incomplete vs duplicate player selections
+- **Session Persistence & Authentication Improvements** (January 2025):
+  - Implemented server-side session management using express-session with PostgreSQL storage
+  - Added seamless localStorage sync with server sessions for robust authentication state
+  - Fixed React hooks order violations that were causing application crashes
+  - Authentication state now persists across page refreshes and browser sessions
+  - Users remain logged in until explicit logout or session expiration
 
 ## System Architecture
 
