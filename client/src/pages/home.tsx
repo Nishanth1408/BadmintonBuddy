@@ -98,7 +98,8 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
 
   const { data: statsData, isLoading: statsLoading } = useQuery<StatsResponse>({
     queryKey: ["/api/stats"],
-    enabled: activeTab === "stats",
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always refetch to get latest skill levels
   });
 
   // Mutations
@@ -123,6 +124,7 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({ title: "Match updated successfully" });
       setEditingMatch(null);
       setMatchFormOpen(false);
@@ -137,6 +139,7 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({ title: "Match deleted successfully" });
     },
     onError: () => {
@@ -310,8 +313,8 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                               <div className="flex items-center space-x-2">
                                 <span className="text-sm text-gray-600">Skill Level:</span>
                                 <div className="flex items-center space-x-1">
-                                  <Badge className={`${getSkillLevelColor(player.skillLevel)} text-white text-xs`}>
-                                    {getSkillLevelLabel(player.skillLevel)}
+                                  <Badge className={`${getSkillLevelColor(stats?.skillLevel || player.skillLevel)} text-white text-xs`}>
+                                    {getSkillLevelLabel(stats?.skillLevel || player.skillLevel)}
                                   </Badge>
                                   {stats?.skillLevelChange === "increased" && (
                                     <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
@@ -775,7 +778,9 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                       </div>
                     ) : (
                       <div className="divide-y divide-gray-200">
-                        {statsData.playerStats.map((playerStat, index) => (
+                        {statsData.playerStats
+                          .sort((a, b) => b.winRate - a.winRate)
+                          .map((playerStat, index) => (
                           <div key={playerStat.playerId} className="p-6 flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <div className="w-8 h-8 flex items-center justify-center">

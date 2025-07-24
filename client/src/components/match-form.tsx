@@ -50,6 +50,7 @@ export default function MatchForm({ preselectedTeamA, onSuccess, embedded = fals
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({ title: "Match recorded successfully" });
       if (!embedded) {
         onSuccess();
