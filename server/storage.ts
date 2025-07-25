@@ -29,6 +29,7 @@ export interface IStorage {
   checkForSkillLevelUpdates(): Promise<void>;
   getSkillLevelSuggestions(): Promise<Array<{ playerId: number; name: string; currentLevel: number; suggestedLevel: number; reason: string; matchesAnalyzed: number; matchesNeeded?: number }>>;
   recalculateAllSkillLevels(): Promise<void>;
+  resetAllPlayersToLevel5(): Promise<void>;
   
   // Statistics
   getPlayerStats(playerId?: number): Promise<PlayerStats[]>;
@@ -670,6 +671,34 @@ export class DatabaseStorage implements IStorage {
     
     // Now recalculate skill levels based on current match history
     await this.checkForSkillLevelUpdates();
+  }
+
+  async resetAllPlayersToLevel5(): Promise<void> {
+    const allPlayers = await this.getAllPlayers();
+    
+    console.log("Resetting all players to skill level 5...");
+    
+    // Set all players to skill level 5 and update their original skill level
+    for (const player of allPlayers) {
+      await db
+        .update(players)
+        .set({
+          skillLevel: 5,
+          originalSkillLevel: 5, // Set original to 5 as the new baseline
+          previousSkillLevel: player.skillLevel, // Store their previous level
+          lastSkillUpdate: new Date(),
+        })
+        .where(eq(players.id, player.id));
+      
+      console.log(`Reset ${player.name} from skill level ${player.skillLevel} to 5`);
+    }
+    
+    console.log("Running dynamic skill level calculations...");
+    
+    // Now run the dynamic skill level calculation logic
+    await this.checkForSkillLevelUpdates();
+    
+    console.log("Skill level reset and recalculation completed!");
   }
 
   async resetAllData(): Promise<void> {

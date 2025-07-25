@@ -273,6 +273,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // One-time action: Reset all players to skill level 5 and recalculate
+  app.post("/api/reset-skills-to-5", async (req, res) => {
+    try {
+      await storage.resetAllPlayersToLevel5();
+      res.json({ message: "All players reset to skill level 5 and recalculated successfully" });
+    } catch (error) {
+      console.error("Failed to reset skills to 5:", error);
+      res.status(500).json({ error: "Failed to reset skills to 5" });
+    }
+  });
+
   // Match routes
   app.get("/api/matches", async (req, res) => {
     try {
