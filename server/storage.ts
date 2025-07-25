@@ -27,6 +27,8 @@ export interface IStorage {
   // Skill level management
   updatePlayerSkillLevel(playerId: number, newSkillLevel: number): Promise<void>;
   checkForSkillLevelUpdates(): Promise<void>;
+  getSkillLevelSuggestions(): Promise<Array<{ playerId: number; name: string; currentLevel: number; suggestedLevel: number; reason: string; matchesAnalyzed: number; matchesNeeded?: number }>>;
+  recalculateAllSkillLevels(): Promise<void>;
   
   // Statistics
   getPlayerStats(playerId?: number): Promise<PlayerStats[]>;
@@ -375,11 +377,15 @@ export class DatabaseStorage implements IStorage {
         match.teamBPlayer2Id === player.id
       ).sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
       
-      // Only check if player has played at least 3 matches
+      // Skip players with less than 3 matches
       if (playerMatches.length < 3) continue;
       
-      // Get last 3 matches for enhanced skill analysis
-      const recentMatches = playerMatches.slice(0, 3);
+      // Determine if we should auto-update (5+ matches) or just suggest (3-4 matches)
+      const shouldAutoUpdate = playerMatches.length >= 5;
+      const matchesToAnalyze = shouldAutoUpdate ? 5 : Math.min(playerMatches.length, 3);
+      
+      // Get recent matches for analysis
+      const recentMatches = playerMatches.slice(0, matchesToAnalyze);
       let weightedPerformanceScore = 0;
       let totalWeight = 0;
       
@@ -388,20 +394,27 @@ export class DatabaseStorage implements IStorage {
         const teamWon = match.winnerId === 1 ? "A" : "B";
         const playerWon = (isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B");
         
-        // Get opposition team players
+        // Get opposition team players and match score data
         let opponentSkillLevels: number[] = [];
+        let playerScore = 0;
+        let opponentScore = 0;
+        
         if (isTeamA) {
           // Player is in Team A, opponents are Team B
           const opponent1 = allPlayers.find(p => p.id === match.teamBPlayer1Id);
           const opponent2 = allPlayers.find(p => p.id === match.teamBPlayer2Id);
           if (opponent1) opponentSkillLevels.push(opponent1.skillLevel);
           if (opponent2) opponentSkillLevels.push(opponent2.skillLevel);
+          playerScore = match.teamAScore;
+          opponentScore = match.teamBScore;
         } else {
           // Player is in Team B, opponents are Team A
           const opponent1 = allPlayers.find(p => p.id === match.teamAPlayer1Id);
           const opponent2 = allPlayers.find(p => p.id === match.teamAPlayer2Id);
           if (opponent1) opponentSkillLevels.push(opponent1.skillLevel);
           if (opponent2) opponentSkillLevels.push(opponent2.skillLevel);
+          playerScore = match.teamBScore;
+          opponentScore = match.teamAScore;
         }
         
         // Calculate average opponent skill level
@@ -409,43 +422,51 @@ export class DatabaseStorage implements IStorage {
           ? opponentSkillLevels.reduce((sum, skill) => sum + skill, 0) / opponentSkillLevels.length 
           : player.skillLevel; // Default to player's level if no opponents found
         
-        // Calculate difficulty weight based on opponent strength relative to player
+        // Calculate skill difference and point difference
         const skillDifference = avgOpponentSkill - player.skillLevel;
+        const pointDifference = playerScore - opponentScore;
         
-        // Weight factor: 
-        // - Beating stronger opponents (positive skillDifference) is weighted higher
-        // - Losing to weaker opponents (negative skillDifference) is weighted higher for penalties
-        let difficultyWeight = 1.0;
-        if (skillDifference > 0) {
-          // Opponents are stronger - wins count more, losses count less
-          difficultyWeight = 1.0 + (skillDifference * 0.2); // +20% weight per skill level difference
-        } else if (skillDifference < 0) {
-          // Opponents are weaker - losses count more, wins count less
-          difficultyWeight = 1.0 + (Math.abs(skillDifference) * 0.15); // +15% penalty weight per skill level difference
-        }
-        
-        // Calculate performance score for this match
+        // Enhanced performance scoring considering both win/loss and point difference
         let matchScore = 0;
+        
         if (playerWon) {
-          if (skillDifference >= 0) {
-            // Beat equal or stronger opponents - positive score enhanced by difficulty
-            matchScore = 1.0 * difficultyWeight;
-          } else {
-            // Beat weaker opponents - reduced positive score
-            matchScore = 1.0 / difficultyWeight;
+          // Base win score
+          let winScore = 1.0;
+          
+          // Bonus for beating stronger opponents
+          if (skillDifference > 0) {
+            winScore *= (1.0 + skillDifference * 0.25); // +25% per skill level difference
+          } else if (skillDifference < 0) {
+            // Reduced score for beating weaker opponents
+            winScore *= (1.0 - Math.abs(skillDifference) * 0.15); // -15% per skill level difference
           }
+          
+          // Point difference bonus/penalty (winning by more points = better performance)
+          const pointBonus = Math.min(pointDifference * 0.1, 0.5); // Max 50% bonus
+          winScore *= (1.0 + pointBonus);
+          
+          matchScore = winScore;
         } else {
-          if (skillDifference <= 0) {
-            // Lost to equal or weaker opponents - negative score enhanced by penalty
-            matchScore = -1.0 * difficultyWeight;
-          } else {
-            // Lost to stronger opponents - reduced negative impact
-            matchScore = -1.0 / difficultyWeight;
+          // Base loss score
+          let lossScore = -1.0;
+          
+          // Reduced penalty for losing to stronger opponents
+          if (skillDifference > 0) {
+            lossScore *= (1.0 - skillDifference * 0.2); // Reduced penalty for losing to stronger
+          } else if (skillDifference < 0) {
+            // Increased penalty for losing to weaker opponents
+            lossScore *= (1.0 + Math.abs(skillDifference) * 0.3); // +30% penalty per skill level
           }
+          
+          // Point difference consideration (losing by fewer points = better performance)
+          const pointPenalty = Math.max(Math.abs(pointDifference) * 0.1, 0.5); // Max 50% additional penalty
+          lossScore *= (1.0 + pointPenalty);
+          
+          matchScore = lossScore;
         }
         
         weightedPerformanceScore += matchScore;
-        totalWeight += 1.0;
+        totalWeight += 1;
       }
       
       // Calculate average weighted performance
@@ -461,12 +482,132 @@ export class DatabaseStorage implements IStorage {
         newSkillLevel = player.skillLevel - 1;
       }
       
-      // Update skill level if it should change
+      // Update skill level if it should change and we have enough matches
       if (newSkillLevel !== player.skillLevel) {
-        console.log(`Updating ${player.name} skill level from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)})`);
-        await this.updatePlayerSkillLevel(player.id, newSkillLevel);
+        if (shouldAutoUpdate) {
+          console.log(`Updating ${player.name} skill level from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches)`);
+          await this.updatePlayerSkillLevel(player.id, newSkillLevel);
+        } else {
+          console.log(`Suggestion for ${player.name}: skill level change from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches) - need ${5 - playerMatches.length} more matches for auto-update`);
+        }
       }
     }
+  }
+
+  async getSkillLevelSuggestions(): Promise<Array<{ playerId: number; name: string; currentLevel: number; suggestedLevel: number; reason: string; matchesAnalyzed: number; matchesNeeded?: number }>> {
+    const allPlayers = await this.getAllPlayers();
+    const allMatches = await this.getAllMatches();
+    const suggestions: Array<{ playerId: number; name: string; currentLevel: number; suggestedLevel: number; reason: string; matchesAnalyzed: number; matchesNeeded?: number }> = [];
+    
+    for (const player of allPlayers) {
+      const playerMatches = allMatches.filter(match => 
+        match.teamAPlayer1Id === player.id ||
+        match.teamAPlayer2Id === player.id ||
+        match.teamBPlayer1Id === player.id ||
+        match.teamBPlayer2Id === player.id
+      ).sort((a, b) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime());
+      
+      // Only provide suggestions for players with 3+ matches
+      if (playerMatches.length < 3) continue;
+      
+      const shouldAutoUpdate = playerMatches.length >= 5;
+      const matchesToAnalyze = shouldAutoUpdate ? 5 : Math.min(playerMatches.length, 3);
+      const recentMatches = playerMatches.slice(0, matchesToAnalyze);
+      
+      let weightedPerformanceScore = 0;
+      let totalWeight = 0;
+      
+      for (const match of recentMatches) {
+        const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
+        const teamWon = match.winnerId === 1 ? "A" : "B";
+        const playerWon = (isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B");
+        
+        let opponentSkillLevels: number[] = [];
+        let playerScore = 0;
+        let opponentScore = 0;
+        
+        if (isTeamA) {
+          const opponent1 = allPlayers.find(p => p.id === match.teamBPlayer1Id);
+          const opponent2 = allPlayers.find(p => p.id === match.teamBPlayer2Id);
+          if (opponent1) opponentSkillLevels.push(opponent1.skillLevel);
+          if (opponent2) opponentSkillLevels.push(opponent2.skillLevel);
+          playerScore = match.teamAScore;
+          opponentScore = match.teamBScore;
+        } else {
+          const opponent1 = allPlayers.find(p => p.id === match.teamAPlayer1Id);
+          const opponent2 = allPlayers.find(p => p.id === match.teamAPlayer2Id);
+          if (opponent1) opponentSkillLevels.push(opponent1.skillLevel);
+          if (opponent2) opponentSkillLevels.push(opponent2.skillLevel);
+          playerScore = match.teamBScore;
+          opponentScore = match.teamAScore;
+        }
+        
+        const avgOpponentSkill = opponentSkillLevels.length > 0 
+          ? opponentSkillLevels.reduce((sum, skill) => sum + skill, 0) / opponentSkillLevels.length 
+          : player.skillLevel;
+        
+        const skillDifference = avgOpponentSkill - player.skillLevel;
+        const pointDifference = playerScore - opponentScore;
+        
+        let matchScore = 0;
+        if (playerWon) {
+          let winScore = 1.0;
+          if (skillDifference > 0) {
+            winScore *= (1.0 + skillDifference * 0.25);
+          } else if (skillDifference < 0) {
+            winScore *= (1.0 - Math.abs(skillDifference) * 0.15);
+          }
+          const pointBonus = Math.min(pointDifference * 0.1, 0.5);
+          winScore *= (1.0 + pointBonus);
+          matchScore = winScore;
+        } else {
+          let lossScore = -1.0;
+          if (skillDifference > 0) {
+            lossScore *= (1.0 - skillDifference * 0.2);
+          } else if (skillDifference < 0) {
+            lossScore *= (1.0 + Math.abs(skillDifference) * 0.3);
+          }
+          const pointPenalty = Math.max(Math.abs(pointDifference) * 0.1, 0.5);
+          lossScore *= (1.0 + pointPenalty);
+          matchScore = lossScore;
+        }
+        
+        weightedPerformanceScore += matchScore;
+        totalWeight += 1;
+      }
+      
+      const avgPerformance = totalWeight > 0 ? weightedPerformanceScore / totalWeight : 0;
+      let suggestedLevel = player.skillLevel;
+      
+      if (avgPerformance > 0.5 && player.skillLevel < 10) {
+        suggestedLevel = player.skillLevel + 1;
+      } else if (avgPerformance < -0.5 && player.skillLevel > 1) {
+        suggestedLevel = player.skillLevel - 1;
+      }
+      
+      if (suggestedLevel !== player.skillLevel) {
+        let reason = "";
+        if (suggestedLevel > player.skillLevel) {
+          reason = `Strong performance against opponents (weighted score: ${avgPerformance.toFixed(2)})`;
+        } else {
+          reason = `Challenging performance against opponents (weighted score: ${avgPerformance.toFixed(2)})`;
+        }
+        
+        const suggestion = {
+          playerId: player.id,
+          name: player.name,
+          currentLevel: player.skillLevel,
+          suggestedLevel,
+          reason,
+          matchesAnalyzed: matchesToAnalyze,
+          ...(shouldAutoUpdate ? {} : { matchesNeeded: 5 - playerMatches.length })
+        };
+        
+        suggestions.push(suggestion);
+      }
+    }
+    
+    return suggestions;
   }
 
   async recalculateAllSkillLevels(): Promise<void> {

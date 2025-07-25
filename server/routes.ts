@@ -262,6 +262,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get skill level suggestions for players with 3+ matches
+  app.get("/api/skill-suggestions", async (req, res) => {
+    try {
+      const suggestions = await storage.getSkillLevelSuggestions();
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Failed to get skill level suggestions:", error);
+      res.status(500).json({ error: "Failed to get skill level suggestions" });
+    }
+  });
+
   // Match routes
   app.get("/api/matches", async (req, res) => {
     try {
