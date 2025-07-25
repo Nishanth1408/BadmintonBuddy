@@ -508,14 +508,12 @@ export class DatabaseStorage implements IStorage {
         newSkillLevel = player.skillLevel + (newSkillLevel > player.skillLevel ? 1 : -1);
       }
       
-      // Update skill level if it should change and we have enough matches
-      if (newSkillLevel !== player.skillLevel) {
-        if (shouldAutoUpdate) {
-          console.log(`Updating ${player.name} skill level from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches)`);
-          await this.updatePlayerSkillLevel(player.id, newSkillLevel);
-        } else {
-          console.log(`Suggestion for ${player.name}: skill level change from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches) - need ${5 - playerMatches.length} more matches for auto-update`);
-        }
+      // Only actually update skill level if player has 5+ matches
+      if (newSkillLevel !== player.skillLevel && shouldAutoUpdate) {
+        console.log(`Updating ${player.name} skill level from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches)`);
+        await this.updatePlayerSkillLevel(player.id, newSkillLevel);
+      } else if (newSkillLevel !== player.skillLevel && !shouldAutoUpdate) {
+        console.log(`Suggestion for ${player.name}: skill level change from ${player.skillLevel} to ${newSkillLevel} (weighted performance: ${avgPerformance.toFixed(2)} over ${matchesToAnalyze} matches) - need ${5 - playerMatches.length} more matches for auto-update`);
       }
     }
   }
