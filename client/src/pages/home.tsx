@@ -779,7 +779,6 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                     ) : (
                       <div className="divide-y divide-gray-200">
                         {statsData.playerStats
-                          .sort((a, b) => b.winRate - a.winRate)
                           .map((playerStat, index) => (
                           <div key={playerStat.playerId} className="p-6 flex items-center justify-between">
                             <div className="flex items-center space-x-4">
@@ -829,6 +828,14 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                                 <p className="text-lg font-bold text-gray-900">{playerStat.winRate}%</p>
                                 <p className="text-xs text-gray-500">Win Rate</p>
                               </div>
+                              {playerStat.totalMatches > 0 && (
+                                <div className="text-center">
+                                  <p className={`text-lg font-bold ${playerStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {playerStat.pointDifference >= 0 ? '+' : ''}{playerStat.pointDifference}
+                                  </p>
+                                  <p className="text-xs text-gray-500">Point Diff</p>
+                                </div>
+                              )}
                               <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-green-600" 
@@ -868,7 +875,6 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                     ) : (
                       <div className="divide-y divide-gray-200">
                         {statsData.teamStats
-                          .sort((a, b) => b.winRate - a.winRate)
                           .map((teamStat, index) => (
                           <div key={`${teamStat.player1.id}-${teamStat.player2.id}`} className="p-6">
                             <div className="flex items-center justify-between">
@@ -912,6 +918,14 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                                   <p className="text-lg font-bold text-gray-900">{teamStat.winRate}%</p>
                                   <p className="text-xs text-gray-500">Win Rate</p>
                                 </div>
+                                {teamStat.totalMatches > 0 && (
+                                  <div className="text-center">
+                                    <p className={`text-lg font-bold ${teamStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {teamStat.pointDifference >= 0 ? '+' : ''}{teamStat.pointDifference}
+                                    </p>
+                                    <p className="text-xs text-gray-500">Point Diff</p>
+                                  </div>
+                                )}
                                 <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div 
                                     className="h-full bg-green-600" 

@@ -357,7 +357,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skillScore: number,
         totalMatches: number,
         wins: number,
-        losses: number
+        losses: number,
+        pointsFor: number,
+        pointsAgainst: number
       }>();
 
       for (const match of matches) {
@@ -374,12 +376,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               skillScore: teamAPlayer1.skillLevel + teamAPlayer2.skillLevel,
               totalMatches: 0,
               wins: 0,
-              losses: 0
+              losses: 0,
+              pointsFor: 0,
+              pointsAgainst: 0
             });
           }
           
           const teamAStat = teamStatsMap.get(teamAKey)!;
           teamAStat.totalMatches++;
+          teamAStat.pointsFor += match.teamAScore;
+          teamAStat.pointsAgainst += match.teamBScore;
           if (match.winnerId === 1) teamAStat.wins++;
           else teamAStat.losses++;
         }
@@ -397,12 +403,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               skillScore: teamBPlayer1.skillLevel + teamBPlayer2.skillLevel,
               totalMatches: 0,
               wins: 0,
-              losses: 0
+              losses: 0,
+              pointsFor: 0,
+              pointsAgainst: 0
             });
           }
           
           const teamBStat = teamStatsMap.get(teamBKey)!;
           teamBStat.totalMatches++;
+          teamBStat.pointsFor += match.teamBScore;
+          teamBStat.pointsAgainst += match.teamAScore;
           if (match.winnerId === 2) teamBStat.wins++;
           else teamBStat.losses++;
         }
@@ -410,8 +420,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const teamStats = Array.from(teamStatsMap.values()).map(team => ({
         ...team,
-        winRate: team.totalMatches > 0 ? Math.round((team.wins / team.totalMatches) * 100) : 0
+        winRate: team.totalMatches > 0 ? Math.round((team.wins / team.totalMatches) * 100) : 0,
+        pointDifference: team.pointsFor - team.pointsAgainst
       }));
+      
+      // Enhanced ranking logic for player stats
+      const rankedPlayerStats = playerStats.sort((a, b) => {
+        // 1. Sort by win rate (higher first)
+        if (a.winRate !== b.winRate) {
+          return b.winRate - a.winRate;
+        }
+        // 2. If win rate is same, sort by number of wins (higher first)
+        if (a.wins !== b.wins) {
+          return b.wins - a.wins;
+        }
+        // 3. If wins are same, sort by point difference (higher first)
+        return b.pointDifference - a.pointDifference;
+      });
+      
+      // Enhanced ranking logic for team stats
+      const rankedTeamStats = teamStats.sort((a, b) => {
+        // 1. Sort by win rate (higher first)
+        if (a.winRate !== b.winRate) {
+          return b.winRate - a.winRate;
+        }
+        // 2. If win rate is same, sort by number of wins (higher first)
+        if (a.wins !== b.wins) {
+          return b.wins - a.wins;
+        }
+        // 3. If wins are same, sort by point difference (higher first)
+        return b.pointDifference - a.pointDifference;
+      });
       
       // Calculate additional stats
       const totalMatches = matches.length;
@@ -425,8 +464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ).length;
 
       res.json({
-        playerStats,
-        teamStats,
+        playerStats: rankedPlayerStats,
+        teamStats: rankedTeamStats,
         totalMatches,
         activePlayers,
         weeklyMatches,

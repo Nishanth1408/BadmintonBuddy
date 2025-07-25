@@ -210,12 +210,25 @@ export class DatabaseStorage implements IStorage {
       
       let wins = 0;
       let recentWins = 0;
+      let pointsFor = 0;
+      let pointsAgainst = 0;
       
       for (const match of playerMatches) {
         const isTeamA = match.teamAPlayer1Id === player.id || match.teamAPlayer2Id === player.id;
         const teamWon = match.winnerId === 1 ? "A" : "B";
+        
+        // Track wins
         if ((isTeamA && teamWon === "A") || (!isTeamA && teamWon === "B")) {
           wins++;
+        }
+        
+        // Track points
+        if (isTeamA) {
+          pointsFor += match.teamAScore;
+          pointsAgainst += match.teamBScore;
+        } else {
+          pointsFor += match.teamBScore;
+          pointsAgainst += match.teamAScore;
         }
       }
       
@@ -229,6 +242,7 @@ export class DatabaseStorage implements IStorage {
       
       const losses = playerMatches.length - wins;
       const winRate = playerMatches.length > 0 ? Math.round((wins / playerMatches.length) * 100) : 0;
+      const pointDifference = pointsFor - pointsAgainst;
       const recentWinRate = recentMatches.length > 0 ? Math.round((recentWins / recentMatches.length) * 100) : 0;
       
       // Calculate skill level change indicator
@@ -322,6 +336,9 @@ export class DatabaseStorage implements IStorage {
         wins,
         losses,
         winRate,
+        pointsFor,
+        pointsAgainst,
+        pointDifference,
         suggestedSkillLevel,
         suggestion,
         suggestionReason,

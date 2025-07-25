@@ -77,6 +77,9 @@ export interface PlayerStats {
   wins: number;
   losses: number;
   winRate: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDifference: number;
   suggestedSkillLevel?: number;
   suggestion?: "increase" | "decrease" | "maintain";
   suggestionReason?: string;
@@ -122,6 +125,9 @@ export interface TeamStats {
   wins: number;
   losses: number;
   winRate: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDifference: number;
 }
 
 export interface StatsResponse {
