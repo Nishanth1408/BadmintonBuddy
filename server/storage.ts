@@ -355,6 +355,22 @@ export class DatabaseStorage implements IStorage {
     const player = await this.getPlayer(playerId);
     if (!player) return;
     
+    // Ensure skill level is bounded between 1 and 10
+    const boundedSkillLevel = Math.max(1, Math.min(10, newSkillLevel));
+    
+    // Ensure skill level only changes by 1 at a time
+    const maxChange = Math.abs(boundedSkillLevel - player.skillLevel);
+    if (maxChange > 1) {
+      console.warn(`Attempted to change ${player.name}'s skill level by ${maxChange} levels (from ${player.skillLevel} to ${boundedSkillLevel}). Limiting change to 1 level.`);
+      if (boundedSkillLevel > player.skillLevel) {
+        newSkillLevel = player.skillLevel + 1;
+      } else {
+        newSkillLevel = player.skillLevel - 1;
+      }
+    } else {
+      newSkillLevel = boundedSkillLevel;
+    }
+    
     await db
       .update(players)
       .set({
@@ -474,12 +490,21 @@ export class DatabaseStorage implements IStorage {
       let newSkillLevel = player.skillLevel;
       
       // Enhanced skill level adjustment based on weighted performance
+      // Only change by 1 level at a time, bounded between 1 and 10
       if (avgPerformance > 0.5 && player.skillLevel < 10) {
-        // Strong weighted performance against appropriate opposition
-        newSkillLevel = player.skillLevel + 1;
+        // Strong weighted performance against appropriate opposition - increase by 1
+        newSkillLevel = Math.min(player.skillLevel + 1, 10);
       } else if (avgPerformance < -0.5 && player.skillLevel > 1) {
-        // Poor weighted performance considering opposition strength
-        newSkillLevel = player.skillLevel - 1;
+        // Poor weighted performance considering opposition strength - decrease by 1
+        newSkillLevel = Math.max(player.skillLevel - 1, 1);
+      }
+      
+      // Additional safety check: ensure skill level is within bounds and only changes by 1
+      newSkillLevel = Math.max(1, Math.min(10, newSkillLevel));
+      const skillChange = Math.abs(newSkillLevel - player.skillLevel);
+      if (skillChange > 1) {
+        // This should not happen with the logic above, but adding as a safety net
+        newSkillLevel = player.skillLevel + (newSkillLevel > player.skillLevel ? 1 : -1);
       }
       
       // Update skill level if it should change and we have enough matches
@@ -579,10 +604,18 @@ export class DatabaseStorage implements IStorage {
       const avgPerformance = totalWeight > 0 ? weightedPerformanceScore / totalWeight : 0;
       let suggestedLevel = player.skillLevel;
       
+      // Only suggest 1 level change at a time, bounded between 1 and 10
       if (avgPerformance > 0.5 && player.skillLevel < 10) {
-        suggestedLevel = player.skillLevel + 1;
+        suggestedLevel = Math.min(player.skillLevel + 1, 10);
       } else if (avgPerformance < -0.5 && player.skillLevel > 1) {
-        suggestedLevel = player.skillLevel - 1;
+        suggestedLevel = Math.max(player.skillLevel - 1, 1);
+      }
+      
+      // Additional safety check for suggestions: ensure bounds and single-level change
+      suggestedLevel = Math.max(1, Math.min(10, suggestedLevel));
+      const skillChange = Math.abs(suggestedLevel - player.skillLevel);
+      if (skillChange > 1) {
+        suggestedLevel = player.skillLevel + (suggestedLevel > player.skillLevel ? 1 : -1);
       }
       
       if (suggestedLevel !== player.skillLevel) {
