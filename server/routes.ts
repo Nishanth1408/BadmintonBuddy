@@ -424,19 +424,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pointDifference: team.pointsFor - team.pointsAgainst
       }));
       
-      // Enhanced ranking logic for player stats
-      const rankedPlayerStats = playerStats.sort((a, b) => {
-        // 1. Sort by win rate (higher first)
-        if (a.winRate !== b.winRate) {
-          return b.winRate - a.winRate;
-        }
-        // 2. If win rate is same, sort by number of wins (higher first)
-        if (a.wins !== b.wins) {
-          return b.wins - a.wins;
-        }
-        // 3. If wins are same, sort by point difference (higher first)
-        return b.pointDifference - a.pointDifference;
-      });
+      // Filter out players with 0 matches and apply enhanced ranking logic
+      const rankedPlayerStats = playerStats
+        .filter(player => player.totalMatches > 0)
+        .sort((a, b) => {
+          // 1. Sort by win rate (higher first)
+          if (a.winRate !== b.winRate) {
+            return b.winRate - a.winRate;
+          }
+          // 2. If win rate is same, sort by number of wins (higher first)
+          if (a.wins !== b.wins) {
+            return b.wins - a.wins;
+          }
+          // 3. If wins are same, sort by point difference (higher first)
+          return b.pointDifference - a.pointDifference;
+        });
       
       // Enhanced ranking logic for team stats
       const rankedTeamStats = teamStats.sort((a, b) => {

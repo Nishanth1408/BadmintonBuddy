@@ -53,6 +53,12 @@ Preferred communication style: Simple, everyday language.
   - Automatic skill level adjustments based on weighted performance over last 3 matches (threshold: ±0.5)
   - Enhanced suggestion system provides more intelligent recommendations based on opponent quality
   - Real-time skill level updates display in Player Management with proper query synchronization
+- **Advanced Statistics Ranking System** (January 2025):
+  - Enhanced ranking logic for both Individual and Team statistics
+  - Multi-tier ranking: 1) Win rate (highest first), 2) Number of wins (if win rate tied), 3) Point difference (if wins tied)
+  - Added point tracking (points for, points against, point difference) for comprehensive performance analysis
+  - Individual Stats now only displays players who have played at least 1 match for cleaner presentation
+  - Point difference displayed with color coding (green for positive, red for negative)
 
 ## System Architecture
 
