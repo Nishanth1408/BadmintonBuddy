@@ -769,67 +769,129 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                       <div className="divide-y divide-gray-200">
                         {statsData.playerStats
                           .map((playerStat, index) => (
-                          <div key={playerStat.playerId} className="p-6 flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-8 h-8 flex items-center justify-center">
-                                <span className="text-lg font-bold text-gray-600">{index + 1}</span>
+                          <div key={playerStat.playerId} className="p-4 md:p-6">
+                            {/* Mobile Layout */}
+                            <div className="md:hidden">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="w-6 h-6 flex items-center justify-center">
+                                  <span className="text-sm font-bold text-gray-600">#{index + 1}</span>
+                                </div>
+                                <div className={`w-10 h-10 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                  {getPlayerInitials(playerStat.name)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 text-sm truncate">{playerStat.name}</h4>
+                                  <div className="flex items-center space-x-2">
+                                    <p className="text-xs text-gray-500">Level {playerStat.skillLevel}</p>
+                                    {playerStat.skillLevelChange === "increased" && (
+                                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
+                                        ↗️
+                                      </Badge>
+                                    )}
+                                    {playerStat.skillLevelChange === "decreased" && (
+                                      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs px-1">
+                                        ↘️
+                                      </Badge>
+                                    )}
+                                    {playerStat.recentPerformance === "improving" && playerStat.skillLevelChange !== "increased" && (
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1">
+                                        📈
+                                      </Badge>
+                                    )}
+                                    {playerStat.recentPerformance === "declining" && playerStat.skillLevelChange !== "decreased" && (
+                                      <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs px-1">
+                                        📉
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className={`w-12 h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold`}>
-                                {getPlayerInitials(playerStat.name)}
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{playerStat.name}</h4>
-                                <div className="flex items-center space-x-2">
-                                  <p className="text-sm text-gray-500">Level {playerStat.skillLevel}</p>
-                                  {playerStat.skillLevelChange === "increased" && (
-                                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
-                                      ↗️ +{playerStat.skillLevel - (playerStat.previousSkillLevel || 0)}
-                                    </Badge>
-                                  )}
-                                  {playerStat.skillLevelChange === "decreased" && (
-                                    <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs px-1">
-                                      ↘️ -{(playerStat.previousSkillLevel || 0) - playerStat.skillLevel}
-                                    </Badge>
-                                  )}
-                                  {playerStat.recentPerformance === "improving" && playerStat.skillLevelChange !== "increased" && (
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1">
-                                      📈 Hot
-                                    </Badge>
-                                  )}
-                                  {playerStat.recentPerformance === "declining" && playerStat.skillLevelChange !== "decreased" && (
-                                    <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs px-1">
-                                      📉 Cold
-                                    </Badge>
-                                  )}
+                              
+                              <div className="grid grid-cols-4 gap-3 text-center">
+                                <div>
+                                  <div className="text-base font-bold text-gray-900">{playerStat.totalMatches}</div>
+                                  <div className="text-xs text-gray-500">Matches</div>
+                                </div>
+                                <div>
+                                  <div className="text-base font-bold text-green-600">{playerStat.wins}</div>
+                                  <div className="text-xs text-gray-500">Wins</div>
+                                </div>
+                                <div>
+                                  <div className="text-base font-bold text-blue-600">{playerStat.winRate}%</div>
+                                  <div className="text-xs text-gray-500">Win Rate</div>
+                                </div>
+                                <div>
+                                  <div className={`text-base font-bold ${playerStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {playerStat.pointDifference >= 0 ? '+' : ''}{playerStat.pointDifference}
+                                  </div>
+                                  <div className="text-xs text-gray-500">Points</div>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-6">
-                              <div className="text-center">
-                                <p className="text-lg font-bold text-gray-900">{playerStat.totalMatches}</p>
-                                <p className="text-xs text-gray-500">Matches</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-lg font-bold text-green-600">{playerStat.wins}</p>
-                                <p className="text-xs text-gray-500">Wins</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-lg font-bold text-gray-900">{playerStat.winRate}%</p>
-                                <p className="text-xs text-gray-500">Win Rate</p>
-                              </div>
-                              {playerStat.totalMatches > 0 && (
-                                <div className="text-center">
-                                  <p className={`text-lg font-bold ${playerStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {playerStat.pointDifference >= 0 ? '+' : ''}{playerStat.pointDifference}
-                                  </p>
-                                  <p className="text-xs text-gray-500">Point Diff</p>
+
+                            {/* Desktop Layout */}
+                            <div className="hidden md:flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-8 h-8 flex items-center justify-center">
+                                  <span className="text-lg font-bold text-gray-600">{index + 1}</span>
                                 </div>
-                              )}
-                              <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-green-600" 
-                                  style={{ width: `${playerStat.winRate}%` }}
-                                />
+                                <div className={`w-12 h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold`}>
+                                  {getPlayerInitials(playerStat.name)}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">{playerStat.name}</h4>
+                                  <div className="flex items-center space-x-2">
+                                    <p className="text-sm text-gray-500">Level {playerStat.skillLevel}</p>
+                                    {playerStat.skillLevelChange === "increased" && (
+                                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
+                                        ↗️ +{playerStat.skillLevel - (playerStat.previousSkillLevel || 0)}
+                                      </Badge>
+                                    )}
+                                    {playerStat.skillLevelChange === "decreased" && (
+                                      <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs px-1">
+                                        ↘️ -{(playerStat.previousSkillLevel || 0) - playerStat.skillLevel}
+                                      </Badge>
+                                    )}
+                                    {playerStat.recentPerformance === "improving" && playerStat.skillLevelChange !== "increased" && (
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1">
+                                        📈 Hot
+                                      </Badge>
+                                    )}
+                                    {playerStat.recentPerformance === "declining" && playerStat.skillLevelChange !== "decreased" && (
+                                      <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-xs px-1">
+                                        📉 Cold
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-6">
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">{playerStat.totalMatches}</p>
+                                  <p className="text-xs text-gray-500">Matches</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-green-600">{playerStat.wins}</p>
+                                  <p className="text-xs text-gray-500">Wins</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-lg font-bold text-gray-900">{playerStat.winRate}%</p>
+                                  <p className="text-xs text-gray-500">Win Rate</p>
+                                </div>
+                                {playerStat.totalMatches > 0 && (
+                                  <div className="text-center">
+                                    <p className={`text-lg font-bold ${playerStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {playerStat.pointDifference >= 0 ? '+' : ''}{playerStat.pointDifference}
+                                    </p>
+                                    <p className="text-xs text-gray-500">Point Diff</p>
+                                  </div>
+                                )}
+                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-600" 
+                                    style={{ width: `${playerStat.winRate}%` }}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -865,61 +927,112 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                       <div className="divide-y divide-gray-200">
                         {statsData.teamStats
                           .map((teamStat, index) => (
-                          <div key={`${teamStat.player1.id}-${teamStat.player2.id}`} className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-4">
-                                <div className="w-8 h-8 flex items-center justify-center">
-                                  <span className="text-lg font-bold text-gray-600">{index + 1}</span>
+                          <div key={`${teamStat.player1.id}-${teamStat.player2.id}`} className="p-4 md:p-6">
+                            {/* Mobile Layout */}
+                            <div className="md:hidden">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="w-6 h-6 flex items-center justify-center">
+                                  <span className="text-sm font-bold text-gray-600">#{index + 1}</span>
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                  <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                <div className="flex items-center space-x-2">
+                                  <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
                                     {getPlayerInitials(teamStat.player1.name)}
                                   </div>
-                                  <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                  <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
                                     {getPlayerInitials(teamStat.player2.name)}
                                   </div>
                                 </div>
-                                <div>
-                                  <h4 className="font-semibold text-gray-900">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 text-sm truncate">
                                     {teamStat.player1.name} & {teamStat.player2.name}
                                   </h4>
                                   <div className="flex items-center space-x-2">
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                                      Skill Score: {teamStat.skillScore}
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                                      Score: {teamStat.skillScore}
                                     </Badge>
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-6">
-                                <div className="text-center">
-                                  <p className="text-lg font-bold text-gray-900">{teamStat.totalMatches}</p>
-                                  <p className="text-xs text-gray-500">Matches</p>
+                              
+                              <div className="grid grid-cols-4 gap-2 text-center">
+                                <div>
+                                  <div className="text-sm font-bold text-gray-900">{teamStat.totalMatches}</div>
+                                  <div className="text-xs text-gray-500">Matches</div>
                                 </div>
-                                <div className="text-center">
-                                  <p className="text-lg font-bold text-green-600">{teamStat.wins}</p>
-                                  <p className="text-xs text-gray-500">Wins</p>
+                                <div>
+                                  <div className="text-sm font-bold text-green-600">{teamStat.wins}</div>
+                                  <div className="text-xs text-gray-500">Wins</div>
                                 </div>
-                                <div className="text-center">
-                                  <p className="text-lg font-bold text-red-600">{teamStat.losses}</p>
-                                  <p className="text-xs text-gray-500">Losses</p>
+                                <div>
+                                  <div className="text-sm font-bold text-gray-900">{teamStat.winRate}%</div>
+                                  <div className="text-xs text-gray-500">Win Rate</div>
                                 </div>
-                                <div className="text-center">
-                                  <p className="text-lg font-bold text-gray-900">{teamStat.winRate}%</p>
-                                  <p className="text-xs text-gray-500">Win Rate</p>
-                                </div>
-                                {teamStat.totalMatches > 0 && (
-                                  <div className="text-center">
-                                    <p className={`text-lg font-bold ${teamStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                      {teamStat.pointDifference >= 0 ? '+' : ''}{teamStat.pointDifference}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Point Diff</p>
+                                <div>
+                                  <div className={`text-sm font-bold ${teamStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {teamStat.pointDifference >= 0 ? '+' : ''}{teamStat.pointDifference}
                                   </div>
-                                )}
-                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-green-600" 
-                                    style={{ width: `${teamStat.winRate}%` }}
-                                  />
+                                  <div className="text-xs text-gray-500">Points</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Desktop Layout */}
+                            <div className="hidden md:block">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-8 h-8 flex items-center justify-center">
+                                    <span className="text-lg font-bold text-gray-600">{index + 1}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                      {getPlayerInitials(teamStat.player1.name)}
+                                    </div>
+                                    <div className={`w-10 h-10 ${getPlayerAvatarColor(players.findIndex(p => p.id === teamStat.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+                                      {getPlayerInitials(teamStat.player2.name)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900">
+                                      {teamStat.player1.name} & {teamStat.player2.name}
+                                    </h4>
+                                    <div className="flex items-center space-x-2">
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                        Skill Score: {teamStat.skillScore}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-6">
+                                  <div className="text-center">
+                                    <p className="text-lg font-bold text-gray-900">{teamStat.totalMatches}</p>
+                                    <p className="text-xs text-gray-500">Matches</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-lg font-bold text-green-600">{teamStat.wins}</p>
+                                    <p className="text-xs text-gray-500">Wins</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-lg font-bold text-red-600">{teamStat.losses}</p>
+                                    <p className="text-xs text-gray-500">Losses</p>
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-lg font-bold text-gray-900">{teamStat.winRate}%</p>
+                                    <p className="text-xs text-gray-500">Win Rate</p>
+                                  </div>
+                                  {teamStat.totalMatches > 0 && (
+                                    <div className="text-center">
+                                      <p className={`text-lg font-bold ${teamStat.pointDifference >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {teamStat.pointDifference >= 0 ? '+' : ''}{teamStat.pointDifference}
+                                      </p>
+                                      <p className="text-xs text-gray-500">Point Diff</p>
+                                    </div>
+                                  )}
+                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-green-600" 
+                                      style={{ width: `${teamStat.winRate}%` }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>
