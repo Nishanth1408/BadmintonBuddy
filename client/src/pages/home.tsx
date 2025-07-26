@@ -208,32 +208,8 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
   };
 
   return (
-    <div>
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid grid-cols-4 w-full h-16 bg-transparent rounded-none">
-            <TabsTrigger value="players" className="flex-col gap-1 h-full data-[state=active]:text-blue-600">
-              <Users className="h-5 w-5" />
-              <span className="text-xs">Players</span>
-            </TabsTrigger>
-            <TabsTrigger value="pairs" className="flex-col gap-1 h-full data-[state=active]:text-blue-600">
-              <UserPlus className="h-5 w-5" />
-              <span className="text-xs">Pairs</span>
-            </TabsTrigger>
-            <TabsTrigger value="matches" className="flex-col gap-1 h-full data-[state=active]:text-blue-600">
-              <Trophy className="h-5 w-5" />
-              <span className="text-xs">Matches</span>
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex-col gap-1 h-full data-[state=active]:text-blue-600">
-              <BarChart3 className="h-5 w-5" />
-              <span className="text-xs">Stats</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-6">
+    <div className="min-h-screen">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           {/* Players Tab */}
           <TabsContent value="players">
@@ -295,7 +271,7 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {players
                   .sort((a, b) => {
                     // Sort by number of matches played (highest first), then by name
@@ -313,19 +289,19 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                   const stats = statsData?.playerStats.find(s => s.playerId === player.id);
                   return (
                     <Card key={player.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-12 h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold`}>
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <div className={`w-10 h-10 md:w-12 md:h-12 ${getPlayerAvatarColor(index)} text-white rounded-full flex items-center justify-center font-semibold text-sm md:text-base`}>
                               {getPlayerInitials(player.name)}
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-600">Skill Level:</span>
-                                <div className="flex items-center space-x-1">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate text-sm md:text-base">{player.name}</h3>
+                              <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-y-0 md:space-x-2">
+                                <span className="text-xs md:text-sm text-gray-600 shrink-0">Level:</span>
+                                <div className="flex items-center space-x-1 flex-wrap">
                                   <Badge className={`${getSkillLevelColor(stats?.skillLevel || player.skillLevel)} text-white text-xs`}>
-                                    {getSkillLevelLabel(stats?.skillLevel || player.skillLevel)}
+                                    {stats?.skillLevel || player.skillLevel}
                                   </Badge>
                                   {stats?.skillLevelChange === "increased" && (
                                     <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-xs px-1">
@@ -351,27 +327,27 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                               </div>
                             </div>
                           </div>
-                          <div className="flex space-x-2">
-                            {currentUser?.role === "manager" && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEditPlayer(player)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeletePlayer(player.id)}
-                                  disabled={deletePlayerMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                          {currentUser?.role === "manager" && (
+                            <div className="flex space-x-1 ml-2 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditPlayer(player)}
+                                className="p-2"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeletePlayer(player.id)}
+                                disabled={deletePlayerMutation.isPending}
+                                className="p-2"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="pt-4 border-t border-gray-100">
@@ -448,10 +424,10 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
             </div>
 
             {pairsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (
                   <Card key={i} className="animate-pulse">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4">
                       <div className="h-4 bg-gray-300 rounded w-3/4 mb-4"></div>
                       <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
                       <div className="h-3 bg-gray-300 rounded w-1/2"></div>
@@ -473,39 +449,39 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
                   .sort((a, b) => b.skillScore - a.skillScore)
                   .map((pair, index) => (
                   <Card key={index}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <span className="text-sm font-medium text-gray-500 w-16">Team {index + 1}</span>
+                    <CardContent className="p-3 md:p-4">
+                      <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:justify-between">
+                        <div className="flex items-center space-x-2 md:space-x-4 flex-1 min-w-0">
+                          <span className="text-xs md:text-sm font-medium text-gray-500 shrink-0">Team {index + 1}</span>
                           
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <div className={`w-6 h-6 md:w-8 md:h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player1.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
                               {getPlayerInitials(pair.player1.name)}
                             </div>
-                            <span className="font-medium text-gray-900">{pair.player1.name}</span>
-                            <span className="text-sm text-gray-500">(L{pair.player1.skillLevel})</span>
+                            <span className="font-medium text-gray-900 text-sm truncate">{pair.player1.name}</span>
+                            <span className="text-xs text-gray-500 shrink-0">(L{pair.player1.skillLevel})</span>
                           </div>
                           
-                          <span className="text-gray-400">+</span>
+                          <span className="text-gray-400 text-sm shrink-0">+</span>
                           
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <div className={`w-6 h-6 md:w-8 md:h-8 ${getPlayerAvatarColor(players.findIndex(p => p.id === pair.player2.id))} text-white rounded-full flex items-center justify-center font-semibold text-xs`}>
                               {getPlayerInitials(pair.player2.name)}
                             </div>
-                            <span className="font-medium text-gray-900">{pair.player2.name}</span>
-                            <span className="text-sm text-gray-500">(L{pair.player2.skillLevel})</span>
+                            <span className="font-medium text-gray-900 text-sm truncate">{pair.player2.name}</span>
+                            <span className="text-xs text-gray-500 shrink-0">(L{pair.player2.skillLevel})</span>
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1 md:space-x-2 justify-start md:justify-end">
                           <Badge
                             variant={pair.balanceLevel === "Balanced" ? "default" : "secondary"}
-                            className={pair.balanceLevel === "Balanced" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                            className={`text-xs ${pair.balanceLevel === "Balanced" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}
                           >
                             {pair.balanceLevel}
                           </Badge>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                            Score: {pair.skillScore}
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                            {pair.skillScore}
                           </Badge>
                         </div>
                       </div>
@@ -699,7 +675,7 @@ export default function Home({ currentUser, activeTab: initialTab = "players" }:
             </div>
 
             {/* Quick Stats Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">

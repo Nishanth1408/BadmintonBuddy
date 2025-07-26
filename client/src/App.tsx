@@ -98,14 +98,16 @@ function AuthWrapper() {
         onLogin={handleOpenLogin}
         onLogout={handleLogout}
       />
-      <Switch>
-        <Route path="/" component={() => <Home currentUser={user} activeTab="players" />} />
-        <Route path="/players" component={() => <Home currentUser={user} activeTab="players" />} />
-        <Route path="/matches" component={() => <Home currentUser={user} activeTab="matches" />} />
-        <Route path="/stats" component={() => <Home currentUser={user} activeTab="stats" />} />
-        <Route path="/pairs" component={() => <Home currentUser={user} activeTab="pairs" />} />
-        <Route component={NotFound} />
-      </Switch>
+      <div className="pb-16 md:pb-0">
+        <Switch>
+          <Route path="/" component={() => <Home currentUser={user} activeTab="players" />} />
+          <Route path="/players" component={() => <Home currentUser={user} activeTab="players" />} />
+          <Route path="/matches" component={() => <Home currentUser={user} activeTab="matches" />} />
+          <Route path="/stats" component={() => <Home currentUser={user} activeTab="stats" />} />
+          <Route path="/pairs" component={() => <Home currentUser={user} activeTab="pairs" />} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
     </div>
   );
 }
